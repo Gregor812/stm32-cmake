@@ -5,17 +5,6 @@ project(stm32f429 VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-file(GLOB_RECURSE ASM_SOURCES "*.s")
-file(GLOB_RECURSE C_SOURCES "*.c")
-file(GLOB_RECURSE CXX_SOURCES "*.cpp")
-file(GLOB_RECURSE LINKER_SCRIPT "*.ld")
-set(SOURCES 
-    ${ASM_SOURCES}
-    ${C_SOURCES}
-    ${CXX_SOURCES}
-    ${LINKER_SCRIPT}
-)
-
 add_definitions(-DSTM32F429xx)
 
 add_subdirectory(CMSIS/Device)
@@ -28,6 +17,12 @@ target_include_directories(${EXE_NAME} PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/CMSIS/Include"    
     "${PROJECT_SOURCE_DIR}/CMSIS/Device/Include"
+)
+
+target_sources(
+    ${EXE_NAME}
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}/main.c
 )
 
 configure_file(config.h.in config.h)
