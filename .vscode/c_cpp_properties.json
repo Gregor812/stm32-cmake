@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "embed",
+            "compilerPath": "D:/GNU-Tools-Arm-Embedded/9-2019-q4-major/bin/arm-none-eabi-g++",
+            "intelliSenseMode": "gcc-x86",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "includePath": [
+                "${workspaceRoot}/CMSIS/Include",
+                "${workspaceRoot}/CMSIS/Device/Include",
+                "${workspaceRoot}/build"
+            ],
+            "defines": [
+                "STM32F429xx"
+            ],
+            "configurationProvider": "vector-of-bool.cmake-tools"
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,2 @@
+#define tools_test_VERSION_MAJOR @tools_test_VERSION_MAJOR@
+#define tools_test_VERSION_MINOR @tools_test_VERSION_MINOR@
