@@ -24,7 +24,7 @@ target_include_directories(${EXE_NAME} PUBLIC
 target_sources(
     ${EXE_NAME}
     PRIVATE
-    ${PROJECT_SOURCE_DIR}/main.c
+    ${PROJECT_SOURCE_DIR}/main.cpp
 )
 
 configure_file(config.h.in config.h)
