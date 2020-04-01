@@ -17,8 +17,9 @@ add_executable(${EXE_NAME})
 
 target_include_directories(${EXE_NAME} PUBLIC
     "${PROJECT_BINARY_DIR}"
-    "${PROJECT_SOURCE_DIR}/CMSIS/Include"    
+    "${PROJECT_SOURCE_DIR}/CMSIS/Include"
     "${PROJECT_SOURCE_DIR}/CMSIS/Device/Include"
+    "${PROJECT_SOURCE_DIR}/display"
 )
 
 target_sources(

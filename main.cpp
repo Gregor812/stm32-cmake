@@ -1,6 +1,7 @@
 #include "stm32f4xx.h"
 
 #include "config.h"
+#include "ili9341.hpp"
 
 void SystemClock_Config(void);
 void Timer2_Config(void);
@@ -11,10 +12,23 @@ int main(void)
 {
     SystemClock_Config();
 
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOGEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN |
+        RCC_AHB1ENR_GPIOCEN |
+        RCC_AHB1ENR_GPIODEN |
+        RCC_AHB1ENR_GPIOFEN |
+        RCC_AHB1ENR_GPIOGEN;
+    RCC->APB2ENR |= RCC_APB2ENR_SPI5EN;
     GPIOG->MODER |= (1 << GPIO_MODER_MODER13_Pos) | (1 << GPIO_MODER_MODER14_Pos);
-
+    
     Timer2_Config();
+    Ili9341 display = Ili9341::ForSerial8Bit4Wire(SPI5,
+        GPIOC, 2,
+        GPIOD, 13,
+        GPIOF, 7, 9,
+        GPIOA, 4,
+        GPIOC, 6);
+
+    display.Init();
 
     while (1)
     {
@@ -69,13 +83,13 @@ extern "C" void TIM2_IRQHandler(void)
     switch (state)
     {
     case 0:
-        GPIOG->BSRR = 3 << 13;
+        GPIOG->BSRR = 1 << 13;
         break;
     case 1:
         GPIOG->BSRR = 1 << 14;
         break;
     case 2:
-        GPIOG->BSRR = 3 << (13 + 16);
+        GPIOG->BSRR = 1 << (13 + 16);
         break;
     case 3:
         GPIOG->BSRR = 1 << (14 + 16);

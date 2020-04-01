@@ -9,7 +9,8 @@
             "includePath": [
                 "${workspaceRoot}/CMSIS/Include",
                 "${workspaceRoot}/CMSIS/Device/Include",
-                "${workspaceRoot}/build"
+                "${workspaceRoot}/build",
+                "${workspaceRoot}/display"
             ],
             "defines": [
                 "STM32F429xx"
