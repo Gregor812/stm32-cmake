@@ -12,6 +12,14 @@ enum class PhysicalInterface
 
 class Ili9341
 {
+private:
+
+    enum class WriteMode
+    {
+        Command = 0,
+        Data = 1
+    };
+
 public:
 
     Ili9341(Ili9341 && other)
@@ -49,7 +57,7 @@ public:
         return result;
     }
 
-    void Init()
+    void Init() const
     {
         _dataCommandSelectPort->MODER |= (1 << (_dataCommandSelectPinNumber << 1));
         _vSyncPort->MODER |= (1 << (_vSyncPinNumber << 1));
@@ -58,40 +66,31 @@ public:
         _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
 
         _spiPort->MODER |= (2 << (_spiClockPinNumber << 1)) | (2 << (_spiIoPinNumber << 1));
+        _spiPort->OTYPER |= (1 << _spiClockPinNumber) | (1 << _spiIoPinNumber);
+        _spiPort->PUPDR |= (1 << (_spiClockPinNumber << 1)) | (1 << (_spiIoPinNumber << 1));
+        _spiPort->OSPEEDR |= (3 << (_spiClockPinNumber << 1)) | (3 << (_spiIoPinNumber << 1));
         _spiPort->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
         _spiPort->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
 
         _spi->CR1 |= SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | SPI_CR1_BR | SPI_CR1_MSTR | SPI_CR1_SPE;
     }
 
-    void WriteCommand(uint8_t command)
+    void WriteCommand(uint8_t command) const
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
-        _spi->CR1 |= SPI_CR1_BIDIOE;
-        _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPinNumber << 16));
-
-
-
-        _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
+        Write(command, WriteMode::Command);
     }
 
-    void WriteData(uint8_t data)
+    void WriteData(uint8_t data) const
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
-        _spi->CR1 |= SPI_CR1_BIDIOE;
-        _dataCommandSelectPort->BSRR = (1 << _dataCommandSelectPinNumber);
-
-
-
-        _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
+        Write(data, WriteMode::Data);
     }
 
-    uint8_t ReadData()
+    uint8_t ReadData() const
     {
         _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
         _spi->CR1 &= ~(SPI_CR1_BIDIOE);
 
-
+        
 
         _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
         return 0;
@@ -126,6 +125,21 @@ private:
         std::swap(_hSyncPinNumber, other._hSyncPinNumber);
 
         std::swap(_physicalInterface, other._physicalInterface);
+    }
+
+    void Write(uint8_t data, WriteMode writeMode) const
+    {
+        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
+        _spi->CR1 |= SPI_CR1_BIDIOE;
+
+        if (writeMode == WriteMode::Command)
+            _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPinNumber << 16));
+        else
+            _dataCommandSelectPort->BSRR = (1 << _dataCommandSelectPinNumber);
+
+        _spi->DR = data;
+
+        _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
     }
     
     SPI_TypeDef * _spi;
