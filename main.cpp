@@ -30,6 +30,8 @@ int main(void)
 
     display.Init();
 
+    display.DrawColor(0x00);
+
     while (1)
     {
     }
