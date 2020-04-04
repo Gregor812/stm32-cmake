@@ -92,19 +92,19 @@ public:
     void Init() const
     {
         _dataCommandSelectPort->MODER |= (1 << (_dataCommandSelectPinNumber << 1));
-        _vSyncPort->MODER |= (1 << (_vSyncPinNumber << 1));
-        _hSyncPort->MODER |= (1 << (_hSyncPinNumber << 1));
-        _chipSelectPort->MODER |= (1 << (_chipSelectPinNumber << 1));
+        // _vSyncPort->MODER |= (1 << (_vSyncPinNumber << 1));
+        // _hSyncPort->MODER |= (1 << (_hSyncPinNumber << 1));
         _chipSelectPort->BSRR = (1 << _chipSelectPinNumber);
+        _chipSelectPort->MODER |= (1 << (_chipSelectPinNumber << 1));
 
         _spiPort->MODER |= (2 << (_spiClockPinNumber << 1)) | (2 << (_spiIoPinNumber << 1));
-        //_spiPort->OTYPER |= (1 << _spiClockPinNumber) | (1 << _spiIoPinNumber);
-        //_spiPort->PUPDR |= (1 << (_spiClockPinNumber << 1)) | (1 << (_spiIoPinNumber << 1));
+        _spiPort->OTYPER |= (1 << _spiClockPinNumber) | (1 << _spiIoPinNumber);
+        _spiPort->PUPDR |= (1 << (_spiClockPinNumber << 1)) | (1 << (_spiIoPinNumber << 1));
         _spiPort->OSPEEDR |= (3 << (_spiClockPinNumber << 1)) | (3 << (_spiIoPinNumber << 1));
         _spiPort->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
         _spiPort->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
 
-        _spi->CR1 |= (SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | (6 << SPI_CR1_BR_Pos) | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI);
+        _spi->CR1 |= (SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | (7 << SPI_CR1_BR_Pos) | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI);
         _spi->CR1 |= SPI_CR1_SPE;
 
         while ((_spi->CR1 & SPI_CR1_SPE) == 0)
@@ -206,7 +206,7 @@ public:
         volatile uint16_t pause = 0xFFFF;
         while (pause--)
         {
-        }        
+        }
 
         WriteCommand(Command::DisplayOn);
         WriteCommand(Command::MemoryWrite);
@@ -260,7 +260,7 @@ public:
 
     uint8_t ReadData() const
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
+        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber + 16));
         _spi->CR1 &= ~(SPI_CR1_BIDIOE);
 
         while ((_spi->SR & SPI_SR_RXNE) == 0)
@@ -308,11 +308,11 @@ private:
 
     void Write(uint8_t data, WriteMode writeMode) const
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber << 16));
+        _chipSelectPort->BSRR = (1 << (_chipSelectPinNumber + 16));
         _spi->CR1 |= SPI_CR1_BIDIOE;
 
         if (writeMode == WriteMode::Command)
-            _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPinNumber << 16));
+            _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPinNumber + 16));
         else
             _dataCommandSelectPort->BSRR = (1 << _dataCommandSelectPinNumber);
 
@@ -320,7 +320,7 @@ private:
         {
         }
         _spi->DR = data;
-        while (_spi->SR & SPI_SR_BSY)
+        while (_spi->SR & SPI_SR_TXE)
         {
         }
 

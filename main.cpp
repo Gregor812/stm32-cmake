@@ -50,7 +50,8 @@ void SystemClock_Config(void)
     }
 
     RCC->CR |= RCC_CR_PLLON;
-    RCC->CFGR |= 4 << RCC_CFGR_PPRE2_Pos;
+    RCC->CFGR |= 10 << RCC_CFGR_HPRE_Pos;
+    RCC->CFGR |= 7 << RCC_CFGR_PPRE2_Pos;
     RCC->CFGR |= 5 << RCC_CFGR_PPRE1_Pos;
 
     while ((RCC->CR & RCC_CR_PLLRDY) == 0)
