@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_definitions(-DSTM32F429xx)
 
 add_subdirectory(CMSIS)
+add_subdirectory(systick)
 
 set(TARGET_NAME firmware)
 set(EXE_NAME ${TARGET_NAME}.elf)
@@ -20,6 +21,8 @@ target_include_directories(${EXE_NAME} PUBLIC
     "${PROJECT_SOURCE_DIR}/CMSIS/Include"
     "${PROJECT_SOURCE_DIR}/CMSIS/Device/Include"
     "${PROJECT_SOURCE_DIR}/display"
+    "${PROJECT_SOURCE_DIR}/systick"
+    "${PROJECT_SOURCE_DIR}"
 )
 
 target_sources(
@@ -32,12 +35,14 @@ configure_file(config.h.in config.h)
 
 target_link_libraries(${EXE_NAME} PUBLIC
    f4-cmsis
+   systick
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.map")
 
 set(HEX_FILE ${PROJECT_SOURCE_DIR}/build/${TARGET_NAME}.hex)
 set(BIN_FILE ${PROJECT_SOURCE_DIR}/build/${TARGET_NAME}.bin)
+
 add_custom_command(TARGET ${EXE_NAME} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${EXE_NAME}> ${HEX_FILE}
         COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${EXE_NAME}> ${BIN_FILE}
