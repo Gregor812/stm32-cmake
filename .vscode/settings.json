@@ -8,6 +8,12 @@
     "files.associations": {
         "config.h": "c",
         "stm32f4xx.h": "c",
-        "stm32f429xx.h": "c"
+        "stm32f429xx.h": "c",
+        "cstdint": "cpp",
+        "cstdarg": "cpp",
+        "cstdio": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "initializer_list": "cpp"
     }
 }
