@@ -1,47 +1,36 @@
 #include "stm32f4xx.h"
 #include "config.h"
-#include "ili9341.hpp"
+#include "Ili9341.hpp"
 
 void SystemClock_Config(void);
-void Timer2_Config(void);
 
-unsigned volatile state = 0;
+static SPI_TypeDef *displaySpi = SPI5;
+static GPIO_TypeDef *chipSelectPort = GPIOC;
+static GPIO_TypeDef *dataCommandSelectPort = GPIOD;
+static GPIO_TypeDef *spiPort = GPIOF;
+static GPIO_TypeDef *connectionModeSelectPort = GPIOD;
+static uint8_t connectionModePins[4] = {2, 4, 5, 7};
+
+void ApplicationInit();
 
 int main(void)
 {
     SystemClock_Config();
-
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN |
-        RCC_AHB1ENR_GPIOCEN |
-        RCC_AHB1ENR_GPIODEN |
-        RCC_AHB1ENR_GPIOFEN |
-        RCC_AHB1ENR_GPIOGEN;
-    RCC->APB2ENR |= RCC_APB2ENR_SPI5EN;
-    GPIOG->MODER |= (1 << GPIO_MODER_MODER13_Pos) | (1 << GPIO_MODER_MODER14_Pos);
-    GPIOD->MODER |= (1 << GPIO_MODER_MODER2_Pos) | (1 << GPIO_MODER_MODER4_Pos) |
-        (1 << GPIO_MODER_MODER5_Pos) | (1 << GPIO_MODER_MODER7_Pos);
-    GPIOD->BSRR = (3 << 4);
+    ApplicationInit();
     
-    Ili9341 display = Ili9341::ForSerial8Bit4Wire(
-        SPI5,
-        GPIOC, 2,
-        GPIOD, 13,
-        GPIOF, 7, 9,
-        0, 0,
+    Ili9341 display = Ili9341::ForSerial8Bit4Wire(displaySpi,
+        chipSelectPort, 2,
+        dataCommandSelectPort, 13,
+        connectionModeSelectPort, connectionModePins,
+        { 0, 0 },
         320, 240,
         ColorMode::R5G6B5);
 
     display.Init();
+    display.FillBackground(Color565::Magenta);
 
     while (1)
-    {
-        display.DrawRussia();
-        Systick::DelayMilliseconds(1000);
-        display.DrawGermany();
-        Systick::DelayMilliseconds(1000);
-        display.DrawUkraine();
-        Systick::DelayMilliseconds(1000);
-    }
+    {}
 }
 
 void SystemClock_Config(void)
@@ -69,43 +58,31 @@ void SystemClock_Config(void)
     {}
 
     RCC->CR &= ~(RCC_CR_HSION);
-    SysTick_Config(168000000L/10000L);
-    SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk;
-    NVIC_SetPriority(SysTick_IRQn, 0);
+    Systick::InitSystick();
 }
 
-void Timer2_Config(void)
+void ApplicationInit()
 {
-    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-    TIM2->PSC = 21000 - 1;
-    TIM2->ARR = 4000 - 1;
-    TIM2->EGR |= TIM_EGR_UG;
-    TIM2->DIER |= TIM_DIER_UIE;
-    NVIC_SetPriority(TIM2_IRQn, 0);
-    NVIC_EnableIRQ(TIM2_IRQn);
-    TIM2->CR1 |= TIM_CR1_CEN;
-}
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN |
+        RCC_AHB1ENR_GPIODEN |
+        RCC_AHB1ENR_GPIOFEN;
+    connectionModeSelectPort->MODER |= (1 << GPIO_MODER_MODER2_Pos) |
+        (1 << GPIO_MODER_MODER4_Pos) | (1 << GPIO_MODER_MODER5_Pos) |
+        (1 << GPIO_MODER_MODER7_Pos);
 
-extern "C" void TIM2_IRQHandler(void)
-{
-    TIM2->SR &= ~(TIM_SR_UIF);
+    dataCommandSelectPort->MODER |= (1 << GPIO_MODER_MODER13_Pos);
+    dataCommandSelectPort->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED13_Pos);
 
-    switch (state)
-    {
-    case 0:
-        GPIOG->BSRR = 1 << 13;
-        break;
-    case 1:
-        GPIOG->BSRR = 1 << 14;
-        break;
-    case 2:
-        GPIOG->BSRR = 1 << (13 + 16);
-        break;
-    case 3:
-        GPIOG->BSRR = 1 << (14 + 16);
-        break;
-    }
+    chipSelectPort->BSRR = (1 << GPIO_BRR_BR2_Pos);
+    chipSelectPort->MODER |= (1 << GPIO_MODER_MODER2_Pos);
+    chipSelectPort->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED2_Pos);
 
-    if (++state > 3)
-        state = 0;
+    spiPort->MODER |= (2 << GPIO_MODER_MODER7_Pos) | (2 << GPIO_MODER_MODER9_Pos);
+    spiPort->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED7_Pos) |
+        (3 << GPIO_OSPEEDR_OSPEED9_Pos);
+    spiPort->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
+    spiPort->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
+
+    RCC->APB2ENR |= RCC_APB2ENR_SPI5EN;
+    displaySpi->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE;
 }
