@@ -24,10 +24,35 @@ int main(void)
         connectionModeSelectPort, connectionModePins,
         { 0, 0 },
         320, 240,
-        ColorMode::R5G6B5);
+        ColorMode::R5G6B5,
+        Orientation::Landscape);
 
     display.Init();
     display.FillBackground(Color565::Magenta);
+
+    display.DrawLine(Color565::Cyan, {10, 10}, {100, 230});
+    display.DrawLine(Color565::Cyan, {11, 10}, {101, 230});
+    display.DrawLine(Color565::Cyan, {12, 10}, {102, 230});
+    display.DrawLine(Color565::Cyan, {100, 10}, {10, 230});
+    display.DrawLine(Color565::Cyan, {101, 10}, {11, 230});
+    display.DrawLine(Color565::Cyan, {102, 10}, {12, 230});
+    
+    display.DrawLine(Color565::Cyan, {110, 10}, {155, 120});
+    display.DrawLine(Color565::Cyan, {111, 10}, {156, 120});
+    display.DrawLine(Color565::Cyan, {112, 10}, {157, 120});
+    display.DrawLine(Color565::Cyan, {200, 10}, {110, 230});
+    display.DrawLine(Color565::Cyan, {201, 10}, {111, 230});
+    display.DrawLine(Color565::Cyan, {202, 10}, {112, 230});
+    
+    display.DrawLine(Color565::Cyan, {210, 10}, {210, 230});
+    display.DrawLine(Color565::Cyan, {211, 10}, {211, 230});
+    display.DrawLine(Color565::Cyan, {212, 10}, {212, 230});
+    display.DrawLine(Color565::Cyan, {300, 10}, {210, 230});
+    display.DrawLine(Color565::Cyan, {301, 10}, {211, 230});
+    display.DrawLine(Color565::Cyan, {302, 10}, {212, 230});
+    display.DrawLine(Color565::Cyan, {300, 10}, {300, 230});
+    display.DrawLine(Color565::Cyan, {301, 10}, {301, 230});
+    display.DrawLine(Color565::Cyan, {302, 10}, {302, 230});
 
     while (1)
     {}
