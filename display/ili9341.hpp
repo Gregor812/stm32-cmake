@@ -7,12 +7,12 @@
 #include "stm32f4xx.h"
 #include "systick.hpp"
 
-#include "ConnectionMode.hpp"
 #include "ColorMode.hpp"
 #include "Orientation.hpp"
 #include "Color565.hpp"
 #include "Command.hpp"
 #include "Point.hpp"
+#include "Dimensions.hpp"
 
 class Ili9341
 {
@@ -23,9 +23,7 @@ public:
         GPIO_TypeDef *dataCommandSelectPort, uint8_t dataCommandSelectPin,
         GPIO_TypeDef *connectionModeSelectPort,
         uint8_t (&connectionModeSelectPins)[4],
-        Point origin,
-        uint16_t width, uint16_t height,
-        ColorMode colorMode,
+        Point origin, Dimensions dimensions,
         Orientation orientation)
     {
         Ili9341 result;
@@ -40,54 +38,9 @@ public:
         result._connectionModeSelectPins[2] = connectionModeSelectPins[2];
         result._connectionModeSelectPins[3] = connectionModeSelectPins[3];
         result._origin = origin;
-        result._width = width;
-        result._height = height;
+        result._dimensions = dimensions;
         result._orientation = orientation;
-        result._colorMode = colorMode;
-
-        result.SetConnectionMode(ConnectionMode::Serial8Bit4Wire);
-        return result;
-    }
-
-    static Ili9341 ForParallel16Bit(        
-        GPIO_TypeDef * (&dPorts)[16], uint8_t (&dPins)[16], 
-        GPIO_TypeDef *chipSelectPort, uint8_t chipSelectPin,
-        GPIO_TypeDef *dataCommandSelectPort, uint8_t dataCommandSelectPin,
-        GPIO_TypeDef *readStrobePort, uint8_t readStrobePin,
-        GPIO_TypeDef *writeStrobePort, uint8_t writeStrobePin,
-        GPIO_TypeDef *connectionModeSelectPort,
-        uint8_t (&connectionModeSelectPins)[4],
-        Point origin,
-        uint16_t width, uint16_t height,
-        ColorMode colorMode,
-        Orientation orientation)
-    {
-        Ili9341 result;
-        for (int i = 0; i < 16; ++i)
-        {
-            result._dPorts[i] = dPorts[i];
-            result._dPins[i] = dPins[i];
-        }
-        result._chipSelectPort = chipSelectPort;
-        result._dataCommandSelectPort = dataCommandSelectPort;
-        result._readStrobePort = readStrobePort;
-        result._writeStrobePort = writeStrobePort;
-        result._connectionModeSelectPort = connectionModeSelectPort;
-        result._chipSelectPin = chipSelectPin;
-        result._dataCommandSelectPin = dataCommandSelectPin;
-        result._readStrobePin = readStrobePin;
-        result._writeStrobePin = writeStrobePin;
-        for (int i = 0; i < 4; ++i)
-        {
-            result._connectionModeSelectPins[i] = connectionModeSelectPins[i];
-        }
-        result._origin = origin;
-        result._width = width;
-        result._height = height;
-        result._orientation = orientation;
-        result._colorMode = colorMode;
-
-        result.SetConnectionMode(ConnectionMode::Parallel16BitIntel);
+        result._cursorPosition = origin;
         return result;
     }
     
@@ -102,13 +55,14 @@ public:
         return *this;
     }
 
-    void Init() const
+    void Init()
     {
         _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
-
+        SetConnectionMode();
         Reset();
         SetColorMode();
-        SetOrientationAndSize();
+        SetOrientation(_orientation);
+        SetSize(_origin, _dimensions);
 
         WriteCommand(Command::DisplayOn);
         Systick::DelayMilliseconds(15);
@@ -119,36 +73,48 @@ public:
         _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
-    void FillBackground(Color565 color) const
+    void FillRectangle(Point origin, Dimensions dimensions, uint16_t color)
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
-        WriteCommand(Command::MemoryWrite);
-        for(uint32_t i = 0; i < _width * _height; ++i)
+        SetCursorPosition(origin);
+        auto flattenedOrigin = _cursorPosition.X +
+            _cursorPosition.Y * _dimensions.Width;
+        for (uint16_t i = 0; i < dimensions.Height; ++i)
         {
-            DrawPointAtCurrentPosition(color);
+            auto flattenedPosition = flattenedOrigin + 
+                i * _dimensions.Width;
+            for (uint16_t j = 0; j < dimensions.Width; ++j)
+                _framebuffer[flattenedPosition++] = color;
         }
-
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-            Systick::DelayMilliseconds(1);
-        
-        _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
-    void DrawPoint(Color565 color, Point point) const
+    void FillRectangle(Point origin, Dimensions dimensions, Color565 color)
+    {
+        FillRectangle(origin, dimensions, static_cast<uint16_t>(color));
+    }
+
+    void FillBackground(uint16_t color)
+    {
+        FillRectangle(_origin, _dimensions, color);
+    }
+
+    void FillBackground(Color565 color)
+    {
+        FillBackground(static_cast<uint16_t>(color));
+    }
+
+    void DrawPoint(Color565 color, Point newPosition)
     {
         _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
 
-        SetCursorPosition(point);
+        SetCursorPosition(newPosition);
         WriteCommand(Command::MemoryWrite);
         DrawPointAtCurrentPosition(color);
-
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-            Systick::DelayMilliseconds(1);
+        Systick::DelayMilliseconds(1);
         
         _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
-    void DrawLine(Color565 color, Point start, Point end) const
+    void DrawLine(uint16_t color, Point start, Point end)
     {
         bool inverted = false;
 
@@ -179,45 +145,72 @@ public:
 
         uint16_t y = start.Y;
 
-        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
-
         for (uint16_t x = start.X; x <= end.X; ++x)
         {
-            if (inverted == true)
-                SetCursorPosition({y, x});
-            else
-                SetCursorPosition({x, y});
+            auto flattenedPosition = (inverted == true) ?
+                x * _dimensions.Width + y :
+                y * _dimensions.Width + x;
+            _framebuffer[flattenedPosition] = color;
 
-            WriteCommand(Command::MemoryWrite);
-            DrawPointAtCurrentPosition(color);
             normalizedError += normalizedSlope;
-
             if (normalizedError > dx)
             {
                 normalizedError -= dx * 2;
                 y += ((dy > 0) ? 1 : -1);
             }
         }
-
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-            Systick::DelayMilliseconds(1);
-        
-        _chipSelectPort->BSRR = (1 << _chipSelectPin);
+    }
+    
+    void DrawLine(Color565 color, Point start, Point end)
+    {
+        DrawLine(static_cast<uint16_t>(color), start, end);
     }
 
-    ColorMode GetColorMode() const
+    void DrawSymbol(uint8_t *symbolMap,
+        Point origin, Dimensions dimensions,
+        uint16_t backgroundColor, uint16_t foregroundColor)
     {
-        return _colorMode;
+        SetCursorPosition(origin);
+        auto flattenedOrigin = _cursorPosition.Y * _dimensions.Width +
+            _cursorPosition.X;
+        for (uint16_t i = 0; i < dimensions.Height; ++i)
+        {
+            auto flattenedPosition = flattenedOrigin + 
+                i * _dimensions.Width;
+            for (uint16_t j = 0; j < dimensions.Width; ++j)
+                _framebuffer[flattenedPosition++] = 
+                    (symbolMap[i * dimensions.Width + j]) ?
+                        foregroundColor :
+                        backgroundColor;
+        }
+    }    
+
+    void DrawSymbol(uint8_t *symbolMap,
+        Point origin, Dimensions dimensions,
+        Color565 backgroundColor, Color565 foregroundColor)
+    {
+        DrawSymbol(symbolMap, origin, dimensions,
+            static_cast<uint16_t>(backgroundColor),
+            static_cast<uint16_t>(foregroundColor));
+    }
+
+    void DrawFrame() const
+    {
+        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
+
+        WriteCommand(Command::MemoryWrite);
+        for(uint32_t i = 0; i < _dimensions.Width * _dimensions.Height; ++i)
+        {
+            DrawPointAtCurrentPosition(_framebuffer[i]);
+        }
+        Systick::DelayMilliseconds(1);
+        
+        _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
     Orientation GetOrientation() const
     {
         return _orientation;
-    }
-
-    ConnectionMode GetConnectionMode() const
-    {
-        return _connectionMode;
     }
 
     Ili9341(Ili9341 const &) = delete;
@@ -238,227 +231,103 @@ private:
         std::swap(_spi, other._spi);
         std::swap(_chipSelectPort, other._chipSelectPort);
         std::swap(_dataCommandSelectPort, other._dataCommandSelectPort);
-        std::swap(_readStrobePort, other._readStrobePort);
-        std::swap(_writeStrobePort, other._writeStrobePort);
         std::swap(_connectionModeSelectPort, other._connectionModeSelectPort);
-        _origin.Swap(other._origin);
         std::swap(_chipSelectPin, other._chipSelectPin);
         std::swap(_dataCommandSelectPin, other._dataCommandSelectPin);
-        std::swap(_readStrobePin, other._readStrobePin);
-        std::swap(_writeStrobePin, other._writeStrobePin);
         std::swap(_connectionModeSelectPins, other._connectionModeSelectPins);
-        std::swap(_width, other._width);
-        std::swap(_height, other._height);
-        std::swap(_colorMode, other._colorMode);
+        _origin.Swap(other._origin);
+        _dimensions.Swap(other._dimensions);
         std::swap(_orientation, other._orientation);
-        std::swap(_connectionMode, other._connectionMode);
-        std::swap(_dPorts, other._dPorts);
-        std::swap(_dPins, other._dPins);
+        _cursorPosition.Swap(other._cursorPosition);
     }
 
     void Reset() const
     {
         WriteCommand(Command::Reset);
-        Systick::DelayMilliseconds(15);
+        Systick::DelayMilliseconds(1);
     }
 
     void SetColorMode() const
     {
         WriteCommand(Command::PixelFormatSet);
-        switch (_colorMode)
-        {
-            case ColorMode::R5G6B5: 
-                WriteDataByte(0x55);
-                break;
-            case ColorMode::R6G6B6:
-                WriteDataByte(0x66);
-                break;
-        }
-        Systick::DelayMilliseconds(15);
+        WriteDataByte(0x55);
+        Systick::DelayMilliseconds(1);
     }
 
-    void SetOrientationAndSize() const
+    void SetOrientation(Orientation orientation)
     {
         WriteCommand(Command::MemoryAccessControl);
-        if (_orientation == Orientation::Portrait)
+        if (orientation == Orientation::Portrait)
             WriteDataByte(0x48);
-        else if (_orientation == Orientation::Landscape)
+        else if (orientation == Orientation::Landscape)
             WriteDataByte(0x28);
-        Systick::DelayMilliseconds(15);
-        
-        WriteCommand(Command::ColumnAddressSet);
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = _origin.X >> 8;
-            uint8_t lowByte = _origin.X;
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(_origin.X);
-        }        
-        
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = (_origin.X + _width - 1) >> 8;
-            uint8_t lowByte = (_origin.X + _width - 1);
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(_origin.X + _width - 1);
-        }
-        Systick::DelayMilliseconds(15);
-
-        WriteCommand(Command::PageAddressSet);
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = _origin.Y >> 8;
-            uint8_t lowByte = _origin.Y;
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(_origin.Y);
-        }
-
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = (_origin.Y + _height - 1) >> 8;
-            uint8_t lowByte = (_origin.Y + _height - 1);
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(_origin.Y + _height - 1);
-        }
-        Systick::DelayMilliseconds(15);
+        _orientation = orientation;
+        Systick::DelayMilliseconds(1);
     }
 
-    void SetCursorPosition(Point point) const
+    void SetSize(Point origin, Dimensions dimensions) const
     {
         WriteCommand(Command::ColumnAddressSet);
-
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = point.X >> 8;
-            uint8_t lowByte = point.X;
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-            Systick::DelayMilliseconds(1);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(point.X);
-            WriteDataWord(point.X);
-        }        
+        uint8_t highByte = origin.X >> 8;
+        uint8_t lowByte = origin.X;
+        WriteDataByte(highByte);
+        WriteDataByte(lowByte);
+        highByte = (origin.X + dimensions.Width - 1) >> 8;
+        lowByte = (origin.X + dimensions.Width - 1);
+        WriteDataByte(highByte);
+        WriteDataByte(lowByte);
+        Systick::DelayMilliseconds(1);
 
         WriteCommand(Command::PageAddressSet);
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = point.Y >> 8;
-            uint8_t lowByte = point.Y;
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-            Systick::DelayMilliseconds(1);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(point.Y);
-            WriteDataWord(point.Y);
-        }
+        highByte = origin.Y >> 8;
+        lowByte = origin.Y;
+        WriteDataByte(highByte);
+        WriteDataByte(lowByte);        
+        highByte = (origin.Y + dimensions.Height - 1) >> 8;
+        lowByte = (origin.Y + dimensions.Height - 1);
+        WriteDataByte(highByte);
+        WriteDataByte(lowByte);
+        Systick::DelayMilliseconds(1);
+    }
+
+    void SetCursorPosition(Point newPosition)
+    {
+        _cursorPosition = newPosition;
     }
 
     void DrawPointAtCurrentPosition(Color565 color) const
     {
-        if (_colorMode != ColorMode::R5G6B5)
-            return;
+        DrawPointAtCurrentPosition(static_cast<uint16_t>(color));
+    }
 
+    void DrawPointAtCurrentPosition(uint16_t color) const
+    {
         uint16_t data = static_cast<uint16_t>(color);
-        if (_connectionMode == ConnectionMode::Serial8Bit4Wire)
-        {
-            uint8_t highByte = data >> 8;
-            uint8_t lowByte = data;
-            WriteDataByte(highByte);
-            WriteDataByte(lowByte);
-        }
-        else if (_connectionMode == ConnectionMode::Parallel16BitIntel)
-        {
-            WriteDataWord(data);
-        }
+        uint8_t highByte = data >> 8;
+        uint8_t lowByte = data;
+        WriteDataByte(highByte);
+        WriteDataByte(lowByte);
     }
 
     void WriteCommand(uint8_t command) const
     {
-        switch (_connectionMode)
-        {
-            case ConnectionMode::Parallel16BitIntel:
-            case ConnectionMode::Parallel18BitIntel:
-            case ConnectionMode::Parallel8BitIntel:
-            case ConnectionMode::Parallel9BitIntel:
-                WriteParallel(command, WriteMode::Command);
-                break;
-            case ConnectionMode::Serial8Bit4Wire:
-                WriteSerial(command, WriteMode::Command);
-                break;
-        }
+        WriteSerial(command, WriteMode::Command);
     }
 
     void WriteCommand(Command command) const
     {
-        switch (_connectionMode)
-        {
-            case ConnectionMode::Parallel16BitIntel:
-            case ConnectionMode::Parallel18BitIntel:
-            case ConnectionMode::Parallel8BitIntel:
-            case ConnectionMode::Parallel9BitIntel:
-                WriteParallel(static_cast<uint8_t>(command), WriteMode::Command);
-                break;
-            case ConnectionMode::Serial8Bit4Wire:
-                WriteSerial(static_cast<uint8_t>(command), WriteMode::Command);
-                break;
-        }
+        WriteSerial(static_cast<uint8_t>(command), WriteMode::Command);
     }
 
     void WriteDataByte(uint8_t data) const
     {
-        switch (_connectionMode)
-        {
-            case ConnectionMode::Parallel16BitIntel:
-            case ConnectionMode::Parallel18BitIntel:
-            case ConnectionMode::Parallel8BitIntel:
-            case ConnectionMode::Parallel9BitIntel:
-                WriteParallel(data, WriteMode::Data);
-                break;
-            case ConnectionMode::Serial8Bit4Wire:
-                WriteSerial(data, WriteMode::Data);
-                break;
-        }
+        WriteSerial(data, WriteMode::Data);
     }
 
     void WriteDataWord(uint16_t data) const
     {
-        switch (_connectionMode)
-        {
-            case ConnectionMode::Parallel16BitIntel:
-            case ConnectionMode::Parallel18BitIntel:
-            case ConnectionMode::Parallel8BitIntel:
-            case ConnectionMode::Parallel9BitIntel:
-                WriteParallel(data, WriteMode::Data);
-                break;
-            case ConnectionMode::Serial8Bit4Wire:
-                WriteSerial(data >> 8, WriteMode::Data);
-                WriteSerial(data, WriteMode::Data);
-                break;
-        }
+        WriteSerial(data >> 8, WriteMode::Data);
+        WriteSerial(data, WriteMode::Data);
     }
 
     void WriteSerial(uint8_t data, WriteMode writeMode) const
@@ -478,71 +347,29 @@ private:
             Systick::DelayMilliseconds(1);
     }
 
-    void WriteParallel(uint16_t data, WriteMode writeMode) const
+    void SetConnectionMode() const
     {
-        for (size_t i = 0; i < sizeof(_dPins); ++i)
-        {
-            auto bitValue = (data >> i) & 1;
-            _dPorts[i]->BSRR = (1 << (_dPins[i] + 16 * (1 - bitValue)));
-        }
-        if (writeMode == WriteMode::Command)
-            _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPin + 16));
-        else
-            _dataCommandSelectPort->BSRR = (1 << _dataCommandSelectPin);
-        _writeStrobePort->BSRR = (1 << _writeStrobePin);
-        _writeStrobePort->BSRR = (1 << (_writeStrobePin + 16));
+        _connectionModeSelectPort->BSRR =
+            (1 << _connectionModeSelectPins[1]) |
+            (1 << _connectionModeSelectPins[2]);
+        _connectionModeSelectPort->BSRR = 
+            (1 << (_connectionModeSelectPins[0] + 16)) |
+            (1 << (_connectionModeSelectPins[4] + 16));
     }
 
-    void SetConnectionMode(ConnectionMode connectionMode)
-    {
-        auto value = static_cast<uint8_t>(connectionMode);
-        switch (connectionMode)
-        {
-        case ConnectionMode::Parallel8BitIntel:
-        case ConnectionMode::Parallel16BitIntel:
-        case ConnectionMode::Parallel9BitIntel:
-        case ConnectionMode::Parallel18BitIntel:
-        case ConnectionMode::Serial8Bit4Wire:
-            for (int i = 0; i < 4; ++i)
-            {
-                auto bitValue = (value >> i) & 1;
-                _connectionModeSelectPort->BSRR =
-                    (1 << (_connectionModeSelectPins[i] + 16 * (1 - bitValue)));
-            }
-            break;
-
-        default:
-            _connectionModeSelectPort->BSRR =
-                (1 << _connectionModeSelectPins[1]) |
-                (1 << _connectionModeSelectPins[2]);
-            _connectionModeSelectPort->BSRR = 
-                (1 << (_connectionModeSelectPins[0] + 16)) |
-                (1 << (_connectionModeSelectPins[4] + 16));
-            _connectionMode = ConnectionMode::Serial8Bit4Wire;
-            return;
-        }
-
-        _connectionMode = connectionMode;
-    }
+    uint16_t _framebuffer[76800];
 
     SPI_TypeDef *_spi;
     GPIO_TypeDef *_chipSelectPort;
     GPIO_TypeDef *_dataCommandSelectPort;
-    GPIO_TypeDef *_readStrobePort;
-    GPIO_TypeDef *_writeStrobePort;
     GPIO_TypeDef *_connectionModeSelectPort;
-    Point _origin;
     uint8_t _chipSelectPin;
     uint8_t _dataCommandSelectPin;
-    uint8_t _readStrobePin;
-    uint8_t _writeStrobePin;
     uint8_t _connectionModeSelectPins[4];
-    uint16_t _width;
-    uint16_t _height;
-    GPIO_TypeDef *_dPorts[16];
-    uint8_t _dPins[16];
 
-    ColorMode _colorMode;
+    Point _origin;
+    Dimensions _dimensions;
     Orientation _orientation;
-    ConnectionMode _connectionMode = ConnectionMode::Serial8Bit4Wire;
+
+    Point _cursorPosition;
 };

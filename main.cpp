@@ -5,8 +5,6 @@
 void SystemClock_Config(void);
 void ApplicationInit(void);
 void DrawOnDisplay(Ili9341 &display);
-void ApplicationDeInit(void);
-void ApplicationInit2(void);
 
 static SPI_TypeDef *displaySpi = SPI5;
 static GPIO_TypeDef *chipSelectPort = GPIOC;
@@ -16,60 +14,46 @@ static uint8_t dataCommandSelectPin = 13;
 static GPIO_TypeDef *spiPort = GPIOF;
 static GPIO_TypeDef *connectionModeSelectPort = GPIOD;
 static uint8_t connectionModePins[4] = {2, 4, 5, 7};
-
-static GPIO_TypeDef *readStrobePort = GPIOD;
-static uint8_t readStrobePin = 12;
-static GPIO_TypeDef *writeStrobePort = GPIOD;
-static uint8_t writeStrobePin = 13;
-static GPIO_TypeDef *dPorts[16] = {
-    GPIOD, GPIOG, GPIOG, GPIOA,
-    GPIOB, GPIOB, GPIOA, GPIOG,
-    GPIOB, GPIOB, GPIOC, GPIOD,
-    GPIOC, GPIOB, GPIOA, GPIOA
+static Point origin = {0, 0};
+static Dimensions dimensions = {320, 240};
+static uint8_t x[84] = {
+    0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 0, 1, 0, 1, 0, 0,
+    0, 0, 1, 0, 1, 0, 0,
+    0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0,
+    0, 0, 1, 0, 1, 0, 0,
+    0, 0, 1, 0, 1, 0, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 0, 0
 };
-static uint8_t dPins[16] = {
-    6, 11, 12, 3,
-    8, 9, 6, 10,
-    10, 11, 7, 3,
-    10, 0, 11, 12
+static uint8_t y[84] = {
+    0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 0, 1, 0, 1, 1, 0,
+    0, 0, 0, 1, 0, 1, 0,
+    0, 0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 0, 1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0
 };
+static Ili9341 display = Ili9341::ForSerial8Bit4Wire(displaySpi,
+    chipSelectPort, chipSelectPin,
+    dataCommandSelectPort, dataCommandSelectPin,
+    connectionModeSelectPort, connectionModePins,
+    origin, dimensions, Orientation::Landscape);
 
 int main(void)
 {
     SystemClock_Config();
     ApplicationInit();
-
-    // Ili9341 display = Ili9341::ForSerial8Bit4Wire(displaySpi,
-    //     chipSelectPort, chipSelectPin,
-    //     dataCommandSelectPort, dataCommandSelectPin,
-    //     connectionModeSelectPort, connectionModePins,
-    //     { 0, 0 },
-    //     320, 240,
-    //     ColorMode::R5G6B5,
-    //     Orientation::Landscape);
-
-    // display.Init();
-    
-    // DrawOnDisplay(display);
-
-    // ApplicationDeInit();
-
-    dataCommandSelectPort = GPIOF;
-    dataCommandSelectPin = 7;
-    
-    ApplicationInit2();
-
-    Ili9341 display = Ili9341::ForParallel16Bit(
-        dPorts, dPins,
-        chipSelectPort, chipSelectPin,
-        dataCommandSelectPort, dataCommandSelectPin,
-        readStrobePort, readStrobePin,
-        writeStrobePort, writeStrobePin,
-        connectionModeSelectPort, connectionModePins,
-        { 0, 0 },
-        320, 240,
-        ColorMode::R5G6B5,
-        Orientation::Landscape);
 
     display.Init();
 
@@ -136,80 +120,41 @@ void ApplicationInit(void)
 
 void DrawOnDisplay(Ili9341 &display)
 {
-    display.FillBackground(Color565::Magenta);
+    for(int32_t i = 0; i < 0x10000; i+=31)
+    {
+        display.FillBackground(i);
+        display.DrawFrame();
+    }
+    display.FillBackground(0x3333);
+    display.DrawFrame();
+
+    display.FillRectangle({50, 100}, {70, 40}, 0x5555);
+    display.DrawSymbol(x, {70, 115}, {7, 12}, Color565::White, Color565::Black);
+    display.DrawSymbol(y, {78, 115}, {7, 12}, Color565::White, Color565::Black);
+    display.DrawSymbol(x, {86, 115}, {7, 12}, Color565::White, Color565::Black);
 
     display.DrawLine(Color565::Cyan, {10, 10}, {100, 230});
     display.DrawLine(Color565::Cyan, {11, 10}, {101, 230});
     display.DrawLine(Color565::Cyan, {12, 10}, {102, 230});
-    display.DrawLine(Color565::Cyan, {100, 10}, {10, 230});
-    display.DrawLine(Color565::Cyan, {101, 10}, {11, 230});
-    display.DrawLine(Color565::Cyan, {102, 10}, {12, 230});
+    display.DrawLine(Color565::Magenta, {100, 10}, {10, 230});
+    display.DrawLine(Color565::Magenta, {101, 10}, {11, 230});
+    display.DrawLine(Color565::Magenta, {102, 10}, {12, 230});
     
-    display.DrawLine(Color565::Cyan, {110, 10}, {155, 120});
-    display.DrawLine(Color565::Cyan, {111, 10}, {156, 120});
-    display.DrawLine(Color565::Cyan, {112, 10}, {157, 120});
-    display.DrawLine(Color565::Cyan, {200, 10}, {110, 230});
-    display.DrawLine(Color565::Cyan, {201, 10}, {111, 230});
-    display.DrawLine(Color565::Cyan, {202, 10}, {112, 230});
+    display.DrawLine(Color565::Red, {110, 10}, {155, 120});
+    display.DrawLine(Color565::Red, {111, 10}, {156, 120});
+    display.DrawLine(Color565::Red, {112, 10}, {157, 120});
+    display.DrawLine(Color565::Green, {200, 10}, {110, 230});
+    display.DrawLine(Color565::Green, {201, 10}, {111, 230});
+    display.DrawLine(Color565::Green, {202, 10}, {112, 230});
     
-    display.DrawLine(Color565::Cyan, {210, 10}, {210, 230});
-    display.DrawLine(Color565::Cyan, {211, 10}, {211, 230});
-    display.DrawLine(Color565::Cyan, {212, 10}, {212, 230});
-    display.DrawLine(Color565::Cyan, {300, 10}, {210, 230});
-    display.DrawLine(Color565::Cyan, {301, 10}, {211, 230});
-    display.DrawLine(Color565::Cyan, {302, 10}, {212, 230});
+    display.DrawLine(Color565::Blue, {210, 10}, {210, 230});
+    display.DrawLine(Color565::Blue, {211, 10}, {211, 230});
+    display.DrawLine(Color565::Blue, {212, 10}, {212, 230});
+    display.DrawLine(Color565::Yellow, {300, 10}, {210, 230});
+    display.DrawLine(Color565::Yellow, {301, 10}, {211, 230});
+    display.DrawLine(Color565::Yellow, {302, 10}, {212, 230});
     display.DrawLine(Color565::Cyan, {300, 10}, {300, 230});
     display.DrawLine(Color565::Cyan, {301, 10}, {301, 230});
     display.DrawLine(Color565::Cyan, {302, 10}, {302, 230});
-}
-
-void ApplicationDeInit(void)
-{
-    displaySpi->CR1 &= ~(SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE);
-    RCC->APB2ENR &= ~RCC_APB2ENR_SPI5EN;
-
-    spiPort->AFR[1] = 0;
-    spiPort->AFR[0] = 0;
-    spiPort->OSPEEDR = 0;
-    spiPort->MODER = 0;
-    
-    dataCommandSelectPort->OSPEEDR = 0;
-    dataCommandSelectPort->MODER = 0;
-        
-    RCC->AHB1ENR = 0x00100000;
-}
-
-void ApplicationInit2(void)
-{
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN |
-        RCC_AHB1ENR_GPIOBEN |
-        RCC_AHB1ENR_GPIOCEN |
-        RCC_AHB1ENR_GPIODEN |
-        RCC_AHB1ENR_GPIOFEN;
-
-    for (size_t i = 0; i < sizeof(connectionModePins); ++i)
-    {
-        connectionModeSelectPort->MODER |= (1 << (connectionModePins[i] << 1));
-    }
-
-    dataCommandSelectPort->MODER |= (1 << (dataCommandSelectPin << 1));
-    dataCommandSelectPort->OSPEEDR |= (3 << (dataCommandSelectPin << 1));
-
-    chipSelectPort->BSRR = (1 << chipSelectPin);
-    chipSelectPort->MODER |= (1 << (chipSelectPin << 1));
-    chipSelectPort->OSPEEDR |= (3 << (chipSelectPin << 1));
-
-    readStrobePort->BSRR = (1 << readStrobePin);
-    readStrobePort->MODER |= (1 << (readStrobePin << 1));
-    readStrobePort->OSPEEDR |= (3 << (readStrobePin << 1));
-
-    writeStrobePort->BSRR = (1 << (writeStrobePin + 16));
-    writeStrobePort->MODER |= (1 << (writeStrobePin << 1));
-    writeStrobePort->OSPEEDR |= (3 << (writeStrobePin << 1));
-    
-    for (size_t i = 0; i < sizeof(dPins); ++i)
-    {
-        dPorts[i]->MODER |= (1 << (dPins[i] << 1));
-        dPorts[i]->OSPEEDR |= (3 << (dPins[i] << 1));
-    }
+    display.DrawFrame();
 }
