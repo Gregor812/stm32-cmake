@@ -14,6 +14,10 @@
         "cstdio": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "initializer_list": "cpp"
+        "initializer_list": "cpp",
+        "cmath": "cpp",
+        "cstdlib": "cpp",
+        "limits": "cpp",
+        "typeinfo": "cpp"
     }
 }
