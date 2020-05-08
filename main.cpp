@@ -4,7 +4,7 @@
 
 void SystemClock_Config(void);
 void ApplicationInit(void);
-void DrawOnDisplay(Ili9341 &display);
+void Draw();
 
 static SPI_TypeDef *displaySpi = SPI5;
 static GPIO_TypeDef *chipSelectPort = GPIOC;
@@ -16,7 +16,7 @@ static GPIO_TypeDef *connectionModeSelectPort = GPIOD;
 static uint8_t connectionModePins[4] = {2, 4, 5, 7};
 static Point origin = {0, 0};
 static Dimensions dimensions = {320, 240};
-static uint8_t x[84] = {
+static const uint8_t x[84] = {
     0, 0, 0, 0, 0, 0, 0,
     0, 1, 0, 0, 0, 1, 0,
     0, 1, 0, 0, 0, 1, 0,
@@ -30,7 +30,7 @@ static uint8_t x[84] = {
     0, 1, 0, 0, 0, 1, 0,
     0, 0, 0, 0, 0, 0, 0
 };
-static uint8_t y[84] = {
+static const uint8_t y[84] = {
     0, 0, 0, 0, 0, 0, 0,
     0, 1, 0, 0, 0, 1, 0,
     0, 1, 0, 0, 0, 1, 0,
@@ -44,7 +44,25 @@ static uint8_t y[84] = {
     0, 0, 1, 1, 1, 0, 0,
     0, 0, 0, 0, 0, 0, 0
 };
-static Ili9341 display = Ili9341::ForSerial8Bit4Wire(displaySpi,
+static const uint8_t j[84] = {
+    0, 0, 1, 0, 1, 0, 0,
+    0, 1, 0, 1, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 1, 1, 0,
+    0, 1, 0, 0, 1, 1, 0,
+    0, 1, 0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0, 1, 0,
+    0, 1, 1, 0, 0, 1, 0,
+    0, 1, 1, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 0, 0
+};
+
+static Framebuffer<320, 240> framebuffer(origin);
+
+static Ili9341<320, 240> display = Ili9341<320, 240>::ForSerial8Bit4Wire(
+    &framebuffer, displaySpi,
     chipSelectPort, chipSelectPin,
     dataCommandSelectPort, dataCommandSelectPin,
     connectionModeSelectPort, connectionModePins,
@@ -56,11 +74,13 @@ int main(void)
     ApplicationInit();
 
     display.Init();
-
-    DrawOnDisplay(display);
+    
+    Draw();
 
     while (1)
-    {}
+    {
+        display.DrawFrame();
+    }
 }
 
 void SystemClock_Config(void)
@@ -93,9 +113,17 @@ void SystemClock_Config(void)
 
 void ApplicationInit(void)
 {
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN |
-        RCC_AHB1ENR_GPIODEN |
-        RCC_AHB1ENR_GPIOFEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
+        RCC_AHB1ENR_GPIOFEN | RCC_AHB1ENR_GPIOGEN; // | RCC_AHB1ENR_DMA2EN;
+
+    // DMA2_Stream0->CR |= (2 << DMA_SxCR_DIR_Pos) | (2 << DMA_SxCR_PSIZE_Pos) |
+    //     (2 << DMA_SxCR_MSIZE_Pos) | (3 << DMA_SxCR_PL_Pos) |
+    //     DMA_SxCR_MINC | DMA_SxCR_PINC;
+    // DMA2_Stream0->PAR = reinterpret_cast<uint32_t>(desk1);
+    // DMA2_Stream0->M0AR = reinterpret_cast<uint32_t>(framebuffer);
+    // DMA2_Stream0->NDTR = 38400;
+    // DMA2_Stream0->CR |= DMA_SxCR_EN;
+
     for (size_t i = 0; i < sizeof(connectionModePins); ++i)
     {
         connectionModeSelectPort->MODER |= (1 << (connectionModePins[i] << 1));
@@ -118,43 +146,36 @@ void ApplicationInit(void)
     displaySpi->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE;
 }
 
-void DrawOnDisplay(Ili9341 &display)
+void Draw()
 {
-    for(int32_t i = 0; i < 0x10000; i+=31)
-    {
-        display.FillBackground(i);
-        display.DrawFrame();
-    }
-    display.FillBackground(0x3333);
-    display.DrawFrame();
+    framebuffer.FillBackground(0x9999);
 
-    display.FillRectangle({50, 100}, {70, 40}, 0x5555);
-    display.DrawSymbol(x, {70, 115}, {7, 12}, Color565::White, Color565::Black);
-    display.DrawSymbol(y, {78, 115}, {7, 12}, Color565::White, Color565::Black);
-    display.DrawSymbol(x, {86, 115}, {7, 12}, Color565::White, Color565::Black);
+    framebuffer.FillRectangle({50, 100}, {70, 40}, 0x5555);
+    framebuffer.DrawSymbol(x, {70, 115}, {7, 12}, Color565::White, Color565::Black);
+    framebuffer.DrawSymbol(y, {78, 115}, {7, 12}, Color565::White, Color565::Black);
+    framebuffer.DrawSymbol(j, {86, 115}, {7, 12}, Color565::White, Color565::Black);
 
-    display.DrawLine(Color565::Cyan, {10, 10}, {100, 230});
-    display.DrawLine(Color565::Cyan, {11, 10}, {101, 230});
-    display.DrawLine(Color565::Cyan, {12, 10}, {102, 230});
-    display.DrawLine(Color565::Magenta, {100, 10}, {10, 230});
-    display.DrawLine(Color565::Magenta, {101, 10}, {11, 230});
-    display.DrawLine(Color565::Magenta, {102, 10}, {12, 230});
+    framebuffer.DrawLine(Color565::Cyan, {10, 10}, {100, 230});
+    framebuffer.DrawLine(Color565::Cyan, {11, 10}, {101, 230});
+    framebuffer.DrawLine(Color565::Cyan, {12, 10}, {102, 230});
+    framebuffer.DrawLine(Color565::Magenta, {100, 10}, {10, 230});
+    framebuffer.DrawLine(Color565::Magenta, {101, 10}, {11, 230});
+    framebuffer.DrawLine(Color565::Magenta, {102, 10}, {12, 230});
     
-    display.DrawLine(Color565::Red, {110, 10}, {155, 120});
-    display.DrawLine(Color565::Red, {111, 10}, {156, 120});
-    display.DrawLine(Color565::Red, {112, 10}, {157, 120});
-    display.DrawLine(Color565::Green, {200, 10}, {110, 230});
-    display.DrawLine(Color565::Green, {201, 10}, {111, 230});
-    display.DrawLine(Color565::Green, {202, 10}, {112, 230});
+    framebuffer.DrawLine(Color565::Red, {110, 10}, {155, 120});
+    framebuffer.DrawLine(Color565::Red, {111, 10}, {156, 120});
+    framebuffer.DrawLine(Color565::Red, {112, 10}, {157, 120});
+    framebuffer.DrawLine(Color565::Green, {200, 10}, {110, 230});
+    framebuffer.DrawLine(Color565::Green, {201, 10}, {111, 230});
+    framebuffer.DrawLine(Color565::Green, {202, 10}, {112, 230});
     
-    display.DrawLine(Color565::Blue, {210, 10}, {210, 230});
-    display.DrawLine(Color565::Blue, {211, 10}, {211, 230});
-    display.DrawLine(Color565::Blue, {212, 10}, {212, 230});
-    display.DrawLine(Color565::Yellow, {300, 10}, {210, 230});
-    display.DrawLine(Color565::Yellow, {301, 10}, {211, 230});
-    display.DrawLine(Color565::Yellow, {302, 10}, {212, 230});
-    display.DrawLine(Color565::Cyan, {300, 10}, {300, 230});
-    display.DrawLine(Color565::Cyan, {301, 10}, {301, 230});
-    display.DrawLine(Color565::Cyan, {302, 10}, {302, 230});
-    display.DrawFrame();
+    framebuffer.DrawLine(Color565::Blue, {210, 10}, {210, 230});
+    framebuffer.DrawLine(Color565::Blue, {211, 10}, {211, 230});
+    framebuffer.DrawLine(Color565::Blue, {212, 10}, {212, 230});
+    framebuffer.DrawLine(Color565::Yellow, {300, 10}, {210, 230});
+    framebuffer.DrawLine(Color565::Yellow, {301, 10}, {211, 230});
+    framebuffer.DrawLine(Color565::Yellow, {302, 10}, {212, 230});
+    framebuffer.DrawLine(Color565::Cyan, {300, 10}, {300, 230});
+    framebuffer.DrawLine(Color565::Cyan, {301, 10}, {301, 230});
+    framebuffer.DrawLine(Color565::Cyan, {302, 10}, {302, 230});
 }
