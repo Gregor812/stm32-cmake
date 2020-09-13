@@ -8,9 +8,9 @@ set(ASM_SOURCES
 )
 set(SOURCES ${C_SOURCES} ${ASM_SOURCES})
 
-add_library(f4-cmsis ${SOURCES})
+add_library(F4-CMSIS ${SOURCES})
 
-target_include_directories(f4-cmsis PUBLIC
+target_include_directories(F4-CMSIS PUBLIC
     "${PROJECT_SOURCE_DIR}/Include"
     "${PROJECT_SOURCE_DIR}/Device/Include"
 )
