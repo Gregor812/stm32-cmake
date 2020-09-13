@@ -7,7 +7,7 @@ enum class Command : uint8_t
     Reset = 0x01,
     SleepOut = 0x11,
     // GammaSet = 0x26,
-    // DisplayOff = 0x28,
+    DisplayOff = 0x28,
     DisplayOn = 0x29,
     ColumnAddressSet = 0x2A,
     PageAddressSet = 0x2B,

@@ -10,8 +10,8 @@
                 "${workspaceRoot}/CMSIS/Include",
                 "${workspaceRoot}/CMSIS/Device/Include",
                 "${workspaceRoot}/build",
-                "${workspaceRoot}/display",
-                "${workspaceRoot}/systick"
+                "${workspaceRoot}/Display",
+                "${workspaceRoot}/Systick"
             ],
             "defines": [
                 "STM32F429xx"
