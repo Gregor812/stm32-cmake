@@ -122,6 +122,18 @@ public:
         DrawLine(static_cast<uint16_t>(color), start, end);
     }
 
+    void DrawTriangle(uint16_t color, Point p1, Point p2, Point p3)
+    {
+        DrawLine(color, p1, p2);
+        DrawLine(color, p2, p3);
+        DrawLine(color, p3, p1);
+    }
+
+    void DrawTriangle(Color565 color, Point p1, Point p2, Point p3)
+    {
+        DrawTriangle(static_cast<uint16_t>(color), p1, p2, p3);
+    }
+
     void DrawSymbol(uint8_t const *symbolMap,
         Point origin, Dimensions dimensions,
         uint16_t backgroundColor, uint16_t foregroundColor)
