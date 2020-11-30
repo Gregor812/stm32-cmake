@@ -31,6 +31,11 @@ public:
         return _framebuffer[index];
     }
 
+    operator uint16_t *()
+    {
+        return _framebuffer;
+    }
+
     void FillRectangle(Point origin, Dimensions dimensions, uint16_t color)
     {
         SetCursorPosition(origin);
