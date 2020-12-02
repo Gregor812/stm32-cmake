@@ -31,6 +31,11 @@ public:
         return _framebuffer[index];
     }
 
+    const uint16_t * GetRawPointer() const
+    {
+        return _framebuffer;
+    }
+
     void FillRectangle(Point origin, Dimensions dimensions, uint16_t color)
     {
         SetCursorPosition(origin);

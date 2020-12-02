@@ -44,6 +44,7 @@ public:
         result._origin = origin;
         result._dimensions = dimensions;
         result._orientation = orientation;
+        result._isDrawing = false;
         return result;
     }
     
@@ -76,19 +77,35 @@ public:
         _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
-    void DrawFrame() const
+    void StartFrameDrawing()
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
+        if (_isDrawing) return;
 
+        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
+        _isDrawing = true;
         WriteCommand(Command::MemoryWrite);
-        for(uint32_t i = 0; i < _dimensions.Width * _dimensions.Height; ++i)
-        {
-            DrawPointAtCurrentPosition((*_framebuffer)[i]);
-        }
+
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+
+        NVIC_EnableIRQ(DMA2_Stream6_IRQn);
+        DMA2->HIFCR &= ~DMA_HIFCR_CTCIF6;
+
+        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>((uint16_t *)_framebuffer);
+        DMA2_Stream6->PAR = reinterpret_cast<uint32_t>(&SPI5->DR);
+        DMA2_Stream6->NDTR = width * height / 2;
+        DMA2_Stream6->CR |= (1 << DMA_SxCR_DIR_Pos) | (3 << DMA_SxCR_PL_Pos) |
+            (7 << DMA_SxCR_CHSEL_Pos) | DMA_SxCR_MINC | DMA_SxCR_TCIE;
+        DMA2_Stream6->CR |= DMA_SxCR_EN;
+    }
+
+    void StopFrameDrawing()
+    {
+        if (!_isDrawing) return;
+
         while(!(_spi->SR & SPI_SR_TXE));
         while(_spi->SR & SPI_SR_BSY);
-        
         _chipSelectPort->BSRR = (1 << _chipSelectPin);
+        _isDrawing = false;
     }
 
     Orientation GetOrientation() const
@@ -116,6 +133,7 @@ private:
         _origin.Swap(other._origin);
         _dimensions.Swap(other._dimensions);
         std::swap(_orientation, other._orientation);
+        std::swap(_isDrawing, other._isDrawing);
     }
 
     void Reset() const
@@ -231,6 +249,8 @@ private:
     uint8_t _chipSelectPin;
     uint8_t _dataCommandSelectPin;
     uint8_t _connectionModeSelectPins[4];
+
+    bool _isDrawing;
 
     Point _origin;
     Dimensions _dimensions;

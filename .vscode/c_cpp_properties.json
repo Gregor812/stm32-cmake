@@ -3,7 +3,7 @@
         {
             "name": "embed",
             "compilerPath": "D:/GNU-Tools-Arm-Embedded/9-2019-q4-major/bin/arm-none-eabi-g++",
-            "intelliSenseMode": "gcc-x86",
+            "intelliSenseMode": "gcc-arm",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "includePath": [
@@ -11,7 +11,8 @@
                 "${workspaceRoot}/CMSIS/Device/Include",
                 "${workspaceRoot}/build",
                 "${workspaceRoot}/Display",
-                "${workspaceRoot}/Systick"
+                "${workspaceRoot}/Systick",
+                "${workspaceRoot}/Random"
             ],
             "defines": [
                 "STM32F429xx"
