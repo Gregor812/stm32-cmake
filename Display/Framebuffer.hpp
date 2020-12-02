@@ -31,7 +31,7 @@ public:
         return _framebuffer[index];
     }
 
-    operator uint16_t *()
+    const uint16_t * GetRawPointer() const
     {
         return _framebuffer;
     }

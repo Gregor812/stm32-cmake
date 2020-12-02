@@ -7,6 +7,8 @@ void SystemClock_Config(void);
 void ApplicationInit(void);
 void Draw();
 
+const uint32_t DmaSendingSize = 320 * 240 / 2;
+
 static volatile uint32_t counter;
 static SPI_TypeDef *displaySpi = SPI5;
 static GPIO_TypeDef *chipSelectPort = GPIOC;
@@ -18,49 +20,6 @@ static GPIO_TypeDef *connectionModeSelectPort = GPIOD;
 static uint8_t connectionModePins[4] = {2, 4, 5, 7};
 static Point origin = {0, 0};
 static Dimensions dimensions = {320, 240};
-static const uint8_t x[84] = {
-    0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 0, 1, 0, 1, 0, 0,
-    0, 0, 1, 0, 1, 0, 0,
-    0, 0, 0, 1, 0, 0, 0,
-    0, 0, 0, 1, 0, 0, 0,
-    0, 0, 1, 0, 1, 0, 0,
-    0, 0, 1, 0, 1, 0, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0
-};
-static const uint8_t y[84] = {
-    0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 0, 1, 0, 1, 1, 0,
-    0, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 0, 1, 1, 1, 0, 0,
-    0, 0, 0, 0, 0, 0, 0
-};
-static const uint8_t j[84] = {
-    0, 0, 1, 0, 1, 0, 0,
-    0, 1, 0, 1, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 1, 1, 0,
-    0, 1, 0, 0, 1, 1, 0,
-    0, 1, 0, 1, 0, 1, 0,
-    0, 1, 0, 1, 0, 1, 0,
-    0, 1, 1, 0, 0, 1, 0,
-    0, 1, 1, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 1, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0
-};
-
 static Framebuffer<320, 240> framebuffer(origin);
 
 static Ili9341<320, 240> display = Ili9341<320, 240>::ForSerial8Bit4Wire(
@@ -79,11 +38,7 @@ int main(void)
     
     framebuffer.FillBackground(0x00F8);
     display.StartFrameDrawing();
-    while (1)
-    {
-        Draw();
-        //Systick::DelayMilliseconds(150);
-    }
+    while (true) Draw();
 }
 
 void SystemClock_Config(void)
@@ -145,9 +100,6 @@ void ApplicationInit(void)
 
     RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
     RNG->CR |= RNG_CR_RNGEN;
-
-    // CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    // DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
 void Draw()
@@ -155,7 +107,7 @@ void Draw()
     uint16_t shift = 320 - 20 - 1;
     do
     {
-        auto color = Random::GetUint32() % 0x10000;
+        auto color = Random::GetUint32(0, 0x10000);
         framebuffer.DrawLine(color, {shift, 240 - 20 - 1}, {shift, 240 - 90 - 1});
     }
     while (--shift > 320 - 90 - 1);
@@ -170,8 +122,8 @@ extern "C" void DMA2_Stream6_IRQHandler()
         if (counter++ < 3);
         else counter = 0;
 
-        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>((uint16_t *)framebuffer) +
-            counter * 320 * 240 / 2;
+        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>(framebuffer.GetRawPointer()) +
+            counter * DmaSendingSize;
         DMA2_Stream6->CR |= DMA_SxCR_EN;
     }
 }
