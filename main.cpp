@@ -2,6 +2,7 @@
 #include "config.h"
 #include "Ili9341.hpp"
 #include "Random.hpp"
+#include "Spi.hpp"
 
 void SystemClock_Config(void);
 void ApplicationInit(void);
@@ -9,25 +10,25 @@ void Draw();
 
 const uint32_t DmaSendingSize = 320 * 240 / 2;
 
-static volatile uint32_t counter;
-static SPI_TypeDef *displaySpi = SPI5;
-static GPIO_TypeDef *chipSelectPort = GPIOC;
-static uint8_t chipSelectPin = 2;
-static GPIO_TypeDef *dataCommandSelectPort = GPIOD;
-static uint8_t dataCommandSelectPin = 13;
-static GPIO_TypeDef *spiPort = GPIOF;
-static GPIO_TypeDef *connectionModeSelectPort = GPIOD;
-static uint8_t connectionModePins[4] = {2, 4, 5, 7};
-static Point origin = {0, 0};
-static Dimensions dimensions = {320, 240};
-static Framebuffer<320, 240> framebuffer(origin);
+static volatile uint32_t Counter;
+static SPI_TypeDef *DisplaySpi = SPI5;
+static GPIO_TypeDef *ChipSelectPort = GPIOC;
+static uint8_t ChipSelectPin = 2;
+static GPIO_TypeDef *DataCommandSelectPort = GPIOD;
+static uint8_t DataCommandSelectPin = 13;
+static GPIO_TypeDef *SpiPort = GPIOF;
+static GPIO_TypeDef *ConnectionModeSelectPort = GPIOD;
+static uint8_t ConnectionModePins[4] = {2, 4, 5, 7};
+static Point Origin = {0, 0};
+static Dimensions Dimensions_ = {320, 240};
+static Framebuffer<320, 240> Framebuffer_(Origin);
+static IOutput Spi5 = Spi(DisplaySpi, ChipSelectPort, ChipSelectPin);
 
 static Ili9341<320, 240> display = Ili9341<320, 240>::ForSerial8Bit4Wire(
-    &framebuffer, displaySpi,
-    chipSelectPort, chipSelectPin,
-    dataCommandSelectPort, dataCommandSelectPin,
-    connectionModeSelectPort, connectionModePins,
-    origin, dimensions, Orientation::Landscape);
+    &Framebuffer_, &Spi5,
+    DataCommandSelectPort, DataCommandSelectPin,
+    ConnectionModeSelectPort, ConnectionModePins,
+    Origin, Dimensions_, Orientation::Landscape);
 
 int main(void)
 {
@@ -36,7 +37,7 @@ int main(void)
 
     display.Init();
     
-    framebuffer.FillBackground(0x00F8);
+    Framebuffer_.FillBackground(0x00F8);
     display.StartFrameDrawing();
     while (true) Draw();
 }
@@ -71,32 +72,32 @@ void SystemClock_Config(void)
 
 void ApplicationInit(void)
 {
-    counter = 0;
+    Counter = 0;
 
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
         RCC_AHB1ENR_GPIOFEN | RCC_AHB1ENR_GPIOGEN;
 
-    for (size_t i = 0; i < sizeof(connectionModePins); ++i)
+    for (size_t i = 0; i < sizeof(ConnectionModePins); ++i)
     {
-        connectionModeSelectPort->MODER |= (1 << (connectionModePins[i] << 1));
+        ConnectionModeSelectPort->MODER |= (1 << (ConnectionModePins[i] << 1));
     }
     
-    dataCommandSelectPort->MODER |= (1 << (dataCommandSelectPin << 1));
-    dataCommandSelectPort->OSPEEDR |= (3 << (dataCommandSelectPin << 1));
+    DataCommandSelectPort->MODER |= (1 << (DataCommandSelectPin << 1));
+    DataCommandSelectPort->OSPEEDR |= (3 << (DataCommandSelectPin << 1));
 
-    chipSelectPort->BSRR = (1 << chipSelectPin);
-    chipSelectPort->MODER |= (1 << (chipSelectPin << 1));
-    chipSelectPort->OSPEEDR |= (3 << (chipSelectPin << 1));
+    ChipSelectPort->BSRR = (1 << ChipSelectPin);
+    ChipSelectPort->MODER |= (1 << (ChipSelectPin << 1));
+    ChipSelectPort->OSPEEDR |= (3 << (ChipSelectPin << 1));
 
-    spiPort->MODER |= (2 << GPIO_MODER_MODER7_Pos) | (2 << GPIO_MODER_MODER9_Pos);
-    spiPort->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED7_Pos) |
+    SpiPort->MODER |= (2 << GPIO_MODER_MODER7_Pos) | (2 << GPIO_MODER_MODER9_Pos);
+    SpiPort->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED7_Pos) |
         (3 << GPIO_OSPEEDR_OSPEED9_Pos);
-    spiPort->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
-    spiPort->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
+    SpiPort->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
+    SpiPort->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
 
     RCC->APB2ENR |= RCC_APB2ENR_SPI5EN;
-    displaySpi->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE;
-    displaySpi->CR2 |= SPI_CR2_TXDMAEN;
+    DisplaySpi->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_SPE;
+    DisplaySpi->CR2 |= SPI_CR2_TXDMAEN;
 
     RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
     RNG->CR |= RNG_CR_RNGEN;
@@ -108,7 +109,7 @@ void Draw()
     do
     {
         auto color = Random::GetUint32(0, 0x10000);
-        framebuffer.DrawLine(color, {shift, 240 - 20 - 1}, {shift, 240 - 90 - 1});
+        Framebuffer_.DrawLine(color, {shift, 240 - 20 - 1}, {shift, 240 - 90 - 1});
     }
     while (--shift > 320 - 90 - 1);
 }
@@ -119,11 +120,11 @@ extern "C" void DMA2_Stream6_IRQHandler()
     {
         DMA2->HIFCR |= DMA_HIFCR_CTCIF6;
 
-        if (counter++ < 3);
-        else counter = 0;
+        if (Counter++ < 3);
+        else Counter = 0;
 
-        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>(framebuffer.GetRawPointer()) +
-            counter * DmaSendingSize;
+        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>(Framebuffer_.GetRawBuffer()) +
+            Counter * DmaSendingSize;
         DMA2_Stream6->CR |= DMA_SxCR_EN;
     }
 }

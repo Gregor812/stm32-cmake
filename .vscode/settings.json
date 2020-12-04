@@ -4,20 +4,5 @@
     "cmake.generator": "MinGW Makefiles",
     "cmake.configureArgs": [
         "-DCMAKE_TOOLCHAIN_FILE=gcc-toolchain.cmake"
-    ],
-    "files.associations": {
-        "config.h": "c",
-        "stm32f4xx.h": "c",
-        "stm32f429xx.h": "c",
-        "cstdint": "cpp",
-        "cstdarg": "cpp",
-        "cstdio": "cpp",
-        "type_traits": "cpp",
-        "utility": "cpp",
-        "initializer_list": "cpp",
-        "cmath": "cpp",
-        "cstdlib": "cpp",
-        "limits": "cpp",
-        "typeinfo": "cpp"
-    }
+    ]
 }

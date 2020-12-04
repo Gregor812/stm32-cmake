@@ -14,6 +14,7 @@
 #include "Point.hpp"
 #include "Dimensions.hpp"
 #include "Framebuffer.hpp"
+#include "Ioutput.hpp"
 
 template<size_t width, size_t height>
 class Ili9341
@@ -21,9 +22,9 @@ class Ili9341
 public:
 
     static Ili9341<width, height> ForSerial8Bit4Wire(
-        Framebuffer<width, height> *framebuffer, SPI_TypeDef *spi,
-        GPIO_TypeDef *chipSelectPort, uint8_t chipSelectPin,
-        GPIO_TypeDef *dataCommandSelectPort, uint8_t dataCommandSelectPin,
+        Framebuffer<width, height> *framebuffer, IOutput *output,
+        GPIO_TypeDef *dataCommandSelectPort,
+        uint8_t dataCommandSelectPin,
         GPIO_TypeDef *connectionModeSelectPort,
         uint8_t (&connectionModeSelectPins)[4],
         Point origin, Dimensions dimensions,
@@ -31,11 +32,9 @@ public:
     {
         Ili9341<width, height> result;
         result._framebuffer = framebuffer;
-        result._spi = spi;
-        result._chipSelectPort = chipSelectPort;
+        result._output = output;
         result._dataCommandSelectPort = dataCommandSelectPort;
         result._connectionModeSelectPort = connectionModeSelectPort;
-        result._chipSelectPin = chipSelectPin;
         result._dataCommandSelectPin = dataCommandSelectPin;
         result._connectionModeSelectPins[0] = connectionModeSelectPins[0];
         result._connectionModeSelectPins[1] = connectionModeSelectPins[1];        
@@ -61,7 +60,6 @@ public:
 
     void Init()
     {
-        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
         SetConnectionMode();
         Reset();
         SetColorMode();
@@ -73,24 +71,20 @@ public:
 
         WriteCommand(Command::SleepOut);
         Systick::DelayMilliseconds(15);
-        
-        _chipSelectPort->BSRR = (1 << _chipSelectPin);
     }
 
     void StartFrameDrawing()
     {
         if (_isDrawing) return;
 
-        _chipSelectPort->BSRR = (1 << (_chipSelectPin + 16));
         _isDrawing = true;
         WriteCommand(Command::MemoryWrite);
 
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
-
         NVIC_EnableIRQ(DMA2_Stream6_IRQn);
+        
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
         DMA2->HIFCR &= ~DMA_HIFCR_CTCIF6;
-
-        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>((uint16_t *)_framebuffer);
+        DMA2_Stream6->M0AR = reinterpret_cast<uint32_t>(_framebuffer->GetRawBuffer());
         DMA2_Stream6->PAR = reinterpret_cast<uint32_t>(&SPI5->DR);
         DMA2_Stream6->NDTR = width * height / 2;
         DMA2_Stream6->CR |= (1 << DMA_SxCR_DIR_Pos) | (3 << DMA_SxCR_PL_Pos) |
@@ -102,9 +96,13 @@ public:
     {
         if (!_isDrawing) return;
 
-        while(!(_spi->SR & SPI_SR_TXE));
-        while(_spi->SR & SPI_SR_BSY);
-        _chipSelectPort->BSRR = (1 << _chipSelectPin);
+        while(_output->IsBusy());
+        DMA2_Stream6->CR &= ~DMA_SxCR_EN;
+        DMA2->HIFCR |= DMA_HIFCR_CTCIF6;
+        RCC->AHB1ENR &= ~RCC_AHB1ENR_DMA2DEN;
+
+        NVIC_DisableIRQ(DMA2_Stream6_IRQn);
+
         _isDrawing = false;
     }
 
@@ -123,11 +121,9 @@ private:
     void Swap(Ili9341<width, height> &other)
     {
         std::swap(_framebuffer, other._framebuffer);
-        std::swap(_spi, other._spi);
-        std::swap(_chipSelectPort, other._chipSelectPort);
+        std::swap(_output, other._output);
         std::swap(_dataCommandSelectPort, other._dataCommandSelectPort);
         std::swap(_connectionModeSelectPort, other._connectionModeSelectPort);
-        std::swap(_chipSelectPin, other._chipSelectPin);
         std::swap(_dataCommandSelectPin, other._dataCommandSelectPin);
         std::swap(_connectionModeSelectPins, other._connectionModeSelectPins);
         _origin.Swap(other._origin);
@@ -145,7 +141,7 @@ private:
     void SetColorMode() const
     {
         WriteCommand(Command::PixelFormatSet);
-        WriteDataByte(0x55);
+        WriteByte(0x55);
         Systick::DelayMilliseconds(1);
     }
 
@@ -153,9 +149,9 @@ private:
     {
         WriteCommand(Command::MemoryAccessControl);
         if (orientation == Orientation::Portrait)
-            WriteDataByte(0x48);
+            WriteByte(0x48);
         else if (orientation == Orientation::Landscape)
-            WriteDataByte(0x28);
+            WriteByte(0x28);
         _orientation = orientation;
         Systick::DelayMilliseconds(1);
     }
@@ -165,23 +161,23 @@ private:
         WriteCommand(Command::ColumnAddressSet);
         uint8_t highByte = origin.X >> 8;
         uint8_t lowByte = origin.X;
-        WriteDataByte(highByte);
-        WriteDataByte(lowByte);
+        WriteByte(highByte);
+        WriteByte(lowByte);
         highByte = (origin.X + dimensions.Width - 1) >> 8;
         lowByte = (origin.X + dimensions.Width - 1);
-        WriteDataByte(highByte);
-        WriteDataByte(lowByte);
+        WriteByte(highByte);
+        WriteByte(lowByte);
         Systick::DelayMilliseconds(1);
 
         WriteCommand(Command::PageAddressSet);
         highByte = origin.Y >> 8;
         lowByte = origin.Y;
-        WriteDataByte(highByte);
-        WriteDataByte(lowByte);        
+        WriteByte(highByte);
+        WriteByte(lowByte);        
         highByte = (origin.Y + dimensions.Height - 1) >> 8;
         lowByte = (origin.Y + dimensions.Height - 1);
-        WriteDataByte(highByte);
-        WriteDataByte(lowByte);
+        WriteByte(highByte);
+        WriteByte(lowByte);
         Systick::DelayMilliseconds(1);
     }
 
@@ -192,7 +188,7 @@ private:
 
     void DrawPointAtCurrentPosition(uint16_t color) const
     {
-        WriteDataWord(color);
+        WriteHalfWord(color);
     }
 
     void WriteCommand(Command command) const
@@ -202,32 +198,24 @@ private:
 
     void WriteCommand(uint8_t command) const
     {
-        while(!(_spi->SR & SPI_SR_TXE));
-        while(_spi->SR & SPI_SR_BSY);
+        while(_output->IsBusy());
         _dataCommandSelectPort->BSRR = (1 << (_dataCommandSelectPin + 16));
-        
-        _spi->DR = command;
-        
-        while(!(_spi->SR & SPI_SR_TXE));
-        while(_spi->SR & SPI_SR_BSY);
+
+        WriteByte(command);
+
+        while(_output->IsBusy());
         _dataCommandSelectPort->BSRR = (1 << _dataCommandSelectPin);
     }
 
-    void WriteDataByte(uint8_t data) const
+    void WriteByte(uint8_t data) const
     {
-        WriteData(data);
+        _output->Write(&data, (&data) + 1);
     }
 
-    void WriteDataWord(uint16_t data) const
+    void WriteHalfWord(uint16_t data) const
     {
-        WriteData(data >> 8);
-        WriteData(data);
-    }
-
-    void WriteData(uint8_t data) const
-    {
-        while(!(_spi->SR & SPI_SR_TXE));
-        _spi->DR = data;
+        WriteByte(data >> 8);
+        WriteByte(data);
     }
 
     void SetConnectionMode() const
@@ -242,11 +230,9 @@ private:
 
     Framebuffer<width, height> *_framebuffer;
 
-    SPI_TypeDef *_spi;
-    GPIO_TypeDef *_chipSelectPort;
+    IOutput *_output;
     GPIO_TypeDef *_dataCommandSelectPort;
     GPIO_TypeDef *_connectionModeSelectPort;
-    uint8_t _chipSelectPin;
     uint8_t _dataCommandSelectPin;
     uint8_t _connectionModeSelectPins[4];
 

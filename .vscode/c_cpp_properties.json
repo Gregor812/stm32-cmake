@@ -12,7 +12,8 @@
                 "${workspaceRoot}/build",
                 "${workspaceRoot}/Display",
                 "${workspaceRoot}/Systick",
-                "${workspaceRoot}/Random"
+                "${workspaceRoot}/Random",
+                "${workspaceRoot}/PeripheralTransport"
             ],
             "defines": [
                 "STM32F429xx"

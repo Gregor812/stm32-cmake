@@ -24,6 +24,7 @@ target_include_directories(${EXE_NAME} PUBLIC
     "${PROJECT_SOURCE_DIR}/Display"
     "${PROJECT_SOURCE_DIR}/Systick"
     "${PROJECT_SOURCE_DIR}/Random"
+    "${PROJECT_SOURCE_DIR}/PeripheralTransport"
     "${PROJECT_SOURCE_DIR}"
 )
 

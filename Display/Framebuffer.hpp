@@ -11,13 +11,11 @@ class Framebuffer
 {
 public:
 
-    Framebuffer(Point origin)
-    {
-        _cursorPosition = origin;
-        _dimensions.Width = width;
-        _dimensions.Height = height;
-        _origin = origin;
-    }
+    Framebuffer(Point origin) : 
+        _dimensions({width, height}),
+        _origin(origin),
+        _cursorPosition(origin)
+    {}
 
     Framebuffer(Framebuffer const& other) = delete;
     Framebuffer(Framebuffer &&other) = delete;
@@ -31,7 +29,7 @@ public:
         return _framebuffer[index];
     }
 
-    const uint16_t * GetRawPointer() const
+    const uint16_t * GetRawBuffer() const
     {
         return _framebuffer;
     }
