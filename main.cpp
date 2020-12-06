@@ -22,7 +22,7 @@ static uint8_t ConnectionModePins[4] = {2, 4, 5, 7};
 static Point Origin = {0, 0};
 static Dimensions Dimensions_ = {320, 240};
 static Framebuffer<320, 240> Framebuffer_(Origin);
-static IOutput Spi5 = Spi(DisplaySpi, ChipSelectPort, ChipSelectPin);
+static Spi Spi5 = Spi(DisplaySpi, ChipSelectPort, ChipSelectPin);
 
 static Ili9341<320, 240> display = Ili9341<320, 240>::ForSerial8Bit4Wire(
     &Framebuffer_, &Spi5,
@@ -101,6 +101,8 @@ void ApplicationInit(void)
 
     RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
     RNG->CR |= RNG_CR_RNGEN;
+
+    Spi5.ActivateChipSelect();
 }
 
 void Draw()

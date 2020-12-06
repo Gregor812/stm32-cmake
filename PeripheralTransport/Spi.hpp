@@ -15,30 +15,15 @@ public:
         ActivateChipSelect();
     }
 
-    void Write(uint8_t *bufferStart, uint8_t *bufferEnd) override
-    {
-        
-        for (;bufferStart != bufferEnd; ++bufferStart)
-            WriteByte(*bufferStart);
-        
-        ReleaseChipSelect();
-    }
-
     bool IsBusy() override
     {
         return !(_spi->SR & SPI_SR_TXE) || (_spi->SR & SPI_SR_BSY);
     }
 
-    ~Spi()
+    void Write(uint8_t *bufferStart, uint8_t *bufferEnd) override
     {
-        ReleaseChipSelect();
-    }
-
-private:
-    void WriteByte(uint8_t byte)
-    {
-        while(!(_spi->SR & SPI_SR_TXE));
-        _spi->DR = byte;
+        for (;bufferStart != bufferEnd; ++bufferStart)
+            WriteByte(*bufferStart);
     }
 
     void ActivateChipSelect()
@@ -49,6 +34,18 @@ private:
     void ReleaseChipSelect()
     {
          _chipSelectPort->BSRR = (1 << _chipSelectPin);
+    }
+
+    ~Spi() override
+    {
+        ReleaseChipSelect();
+    }
+
+private:
+    void WriteByte(uint8_t byte)
+    {
+        while(!(_spi->SR & SPI_SR_TXE));
+        _spi->DR = byte;
     }
 
     SPI_TypeDef *_spi;
