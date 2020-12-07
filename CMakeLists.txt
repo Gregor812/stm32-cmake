@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(stm32f429 VERSION 1.0
+project(F249_Display VERSION 1.0
     LANGUAGES C ASM CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,6 +11,7 @@ add_definitions(-DSTM32F429xx)
 add_subdirectory(CMSIS)
 add_subdirectory(Systick)
 add_subdirectory(Random)
+add_subdirectory(Application)
 
 set(TARGET_NAME firmware)
 set(EXE_NAME ${TARGET_NAME}.elf)
@@ -18,13 +19,7 @@ set(EXE_NAME ${TARGET_NAME}.elf)
 add_executable(${EXE_NAME})
 
 target_include_directories(${EXE_NAME} PUBLIC
-    "${PROJECT_BINARY_DIR}"
-    "${PROJECT_SOURCE_DIR}/CMSIS/Include"
-    "${PROJECT_SOURCE_DIR}/CMSIS/Device/Include"
-    "${PROJECT_SOURCE_DIR}/Display"
-    "${PROJECT_SOURCE_DIR}/Systick"
-    "${PROJECT_SOURCE_DIR}/Random"
-    "${PROJECT_SOURCE_DIR}/PeripheralTransport"
+    "${PROJECT_SOURCE_DIR}/Application"
     "${PROJECT_SOURCE_DIR}"
 )
 
@@ -37,9 +32,7 @@ target_sources(
 configure_file(config.h.in config.h)
 
 target_link_libraries(${EXE_NAME} PUBLIC
-   F4-CMSIS
-   Systick
-   Random
+   Application
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.map")

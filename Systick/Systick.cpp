@@ -1,12 +1,10 @@
-#include <cstdint>
-
 #include "stm32f4xx.h"
 
 namespace Systick
 {
     static volatile uint32_t sysTickCounter = 0;
 
-    void InitSystick()
+    void Initialize()
     {        
         SysTick_Config(168000000L/1000L);
         SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk;
@@ -19,7 +17,7 @@ namespace Systick
         while (sysTickCounter - counterSnapshot < milliseconds)
         {}
     }
-} // namespace Systick
+}
 
 extern "C" void SysTick_Handler()
 {

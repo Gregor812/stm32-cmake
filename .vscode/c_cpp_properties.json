@@ -10,10 +10,12 @@
                 "${workspaceRoot}/CMSIS/Include",
                 "${workspaceRoot}/CMSIS/Device/Include",
                 "${workspaceRoot}/build",
-                "${workspaceRoot}/Display",
                 "${workspaceRoot}/Systick",
                 "${workspaceRoot}/Random",
-                "${workspaceRoot}/PeripheralTransport"
+                "${workspaceRoot}/Application",
+                "${workspaceRoot}/Application/Ili9341",
+                "${workspaceRoot}/Display",
+                "${workspaceRoot}/Peripherals"
             ],
             "defines": [
                 "STM32F429xx"

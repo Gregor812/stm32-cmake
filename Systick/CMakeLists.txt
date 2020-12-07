@@ -1,5 +1,8 @@
 project(Systick CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 set(CXX_SOURCES
     "${PROJECT_SOURCE_DIR}/Systick.cpp"
 )
@@ -9,6 +12,6 @@ add_library(Systick ${SOURCES})
 
 target_include_directories(Systick PUBLIC
     "${PROJECT_SOURCE_DIR}"
-    "${PROJECT_SOURCE_DIR}/../CMSIS/Include/"
-    "${PROJECT_SOURCE_DIR}/../CMSIS/Device/Include/"
+    "${PROJECT_SOURCE_DIR}/../CMSIS/Include"
+    "${PROJECT_SOURCE_DIR}/../CMSIS/Device/Include"
 )

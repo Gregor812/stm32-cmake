@@ -1,11 +1,14 @@
 #include "Random.hpp"
+#include "stm32f4xx.h"
 
 namespace Random
 {
-    static uint32_t GetValue()
+    static uint32_t GetValue();
+    
+    void Initialize()
     {
-        while(!(RNG->SR & RNG_SR_DRDY));
-        return RNG->DR;
+        RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+        RNG->CR |= RNG_CR_RNGEN;
     }
 
     uint32_t GetUint32()
@@ -19,4 +22,10 @@ namespace Random
         if (max == min) return max;
         return (GetValue() % (max - min)) + min;
     }
-} // namespace Random
+
+    static uint32_t GetValue()
+    {
+        while (!(RNG->SR & RNG_SR_DRDY));
+        return RNG->DR;
+    }
+}

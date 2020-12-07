@@ -1,2 +1,2 @@
-#define tools_test_VERSION_MAJOR @tools_test_VERSION_MAJOR@
-#define tools_test_VERSION_MINOR @tools_test_VERSION_MINOR@
+#define F249_Display_VERSION_MAJOR @F249_Display_VERSION_MAJOR@
+#define F249_Display_VERSION_MINOR @F249_Display_VERSION_MINOR@

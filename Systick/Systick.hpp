@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Systick
 {
-    void InitSystick();
+    void Initialize();
     void DelayMilliseconds(uint32_t milliseconds);
 }
