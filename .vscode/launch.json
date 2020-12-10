@@ -14,7 +14,8 @@
             "configFiles": [
                 "D:/xPack/OpenOCD/0.10.0-13/scripts/board/stm32f429discovery.cfg"
             ],
-            "svdFile": "${workspaceRoot}/STM32F429.svd"
+            "svdFile": "${workspaceRoot}/STM32F429.svd",
+            "preLaunchTask": "build"
         }
     ]
 }

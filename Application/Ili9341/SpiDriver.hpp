@@ -1,10 +1,13 @@
 #pragma once
 
 #include <functional>
-#include "IDisplay.hpp"
+
 #include "stm32f4xx.h"
+#include "IDisplay.hpp"
 #include "Systick.hpp"
 #include "Spi.hpp"
+
+using namespace Peripherals;
 
 namespace Ili9341
 {
@@ -14,17 +17,16 @@ namespace Ili9341
 
         SpiDriver(SPI_TypeDef *spi,
             std::function<void (SPI_TypeDef *)> initialize)
-            : _spi(Peripherals::Spi8Bit(spi, initialize))
+            : _spi(std::move(Spi8Bit(spi, initialize)))
         {}
 
-        SpiDriver& InitializeHardware(void) override
+        void InitializeHardware(void) override
         {
-            _spi = _spi.Initialize()
-                .ActivateChipSelect();
-            return *this;
+            _spi.Initialize();
+            _spi.ActivateChipSelect();
         }
 
-        SpiDriver& InitializeSoftware(void) override
+        void InitializeSoftware(void) override
         {
             SetConnectionMode();
             Reset();
@@ -39,30 +41,29 @@ namespace Ili9341
             Systick::DelayMilliseconds(15);
 
             WriteCommand(0x2C);
-
-            return *this;
         }
 
         void RedrawFrame(void) override
         {
+            auto a = Random::GetUint32();
             for(int i = 0; i < 320 * 240 * 2; ++i)
             {
-                WriteData(54);
-                WriteData(98);
+                WriteData(a);
+                WriteData(Random::GetUint32());
             }
         }
 
         ~SpiDriver() override
         {
-            //_spi.ReleaseChipSelect();
+            _spi.ReleaseChipSelect();
         }
 
     private:
 
         void SetConnectionMode(void)
         {
-            GPIOD->BSRR = (1 << 4) | (1 << 5);
-            GPIOD->BSRR = (1 << (2 + 16)) | (1 << (7 + 16));
+            Gpio::Set<Gpio::Pin::Pin4, Gpio::Pin::Pin5>(GPIOD);
+            Gpio::Reset<Gpio::Pin::Pin2, Gpio::Pin::Pin7>(GPIOD);
         }
 
         void Reset(void)
@@ -114,13 +115,13 @@ namespace Ili9341
         {
             while(!_spi.BufferIsEmpty());
             while(_spi.IsBusy());
-            GPIOD->BSRR = (1 << (13 + 16));
+            Gpio::Reset<Gpio::Pin::Pin13>(GPIOD);
             
             _spi.Write(command);
             
             while(!_spi.BufferIsEmpty());
             while(_spi.IsBusy());
-            GPIOD->BSRR = (1 << 13);
+            Gpio::Set<Gpio::Pin::Pin13>(GPIOD);
         }
 
         void WriteData(uint8_t data)
@@ -130,6 +131,6 @@ namespace Ili9341
         }
 
 
-        Peripherals::Spi8Bit _spi;
+        Spi8Bit _spi;
     };
 }

@@ -3,6 +3,8 @@
 #include "Random.hpp"
 #include "SpiDriver.hpp"
 
+using namespace Peripherals;
+
 namespace Application
 {
     void App::Run()
@@ -42,9 +44,9 @@ namespace Application
     {
         Random::Initialize();
         InitializePins();
-        auto ili9341 = Ili9341::SpiDriver(SPI5, [this](SPI_TypeDef *spi) { this->InitializeSpi(spi); })
-            .InitializeHardware()
-            .InitializeSoftware();
+        auto ili9341 = Ili9341::SpiDriver(SPI5, [this](SPI_TypeDef *spi) { this->InitializeSpi(spi); });
+        ili9341.InitializeHardware();
+        ili9341.InitializeSoftware();
         ili9341.RedrawFrame();
     }
 
@@ -53,21 +55,19 @@ namespace Application
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                         RCC_AHB1ENR_GPIOFEN;
 
-        GPIOD->MODER |= (1 << (2 << 1)) | (1 << (4 << 1)) |
-                        (1 << (5 << 1)) | (1 << (7 << 1));
+        Gpio::SetMode<Gpio::Pin::Pin2, Gpio::Pin::Pin4,
+            Gpio::Pin::Pin5, Gpio::Pin::Pin7, Gpio::Pin::Pin13>
+            (GPIOD, Gpio::Mode::Output);
 
-        GPIOD->MODER |= (1 << (13 << 1));
-        GPIOD->OSPEEDR |= (3 << (13 << 1));
+        Gpio::SetSpeed<Gpio::Pin::Pin13>(GPIOD, Gpio::Speed::VeryHigh);
 
-        GPIOC->BSRR = (1 << 2);
-        GPIOC->MODER |= (1 << (2 << 1));
-        GPIOC->OSPEEDR |= (3 << (2 << 1));
+        Gpio::Set<Gpio::Pin::Pin2>(GPIOC);
+        Gpio::SetMode<Gpio::Pin::Pin2>(GPIOC, Gpio::Mode::Output);
+        Gpio::SetSpeed<Gpio::Pin::Pin2>(GPIOC, Gpio::Speed::VeryHigh);
 
-        GPIOF->MODER |= (2 << GPIO_MODER_MODER7_Pos) | (2 << GPIO_MODER_MODER9_Pos);
-        GPIOF->OSPEEDR |= (3 << GPIO_OSPEEDR_OSPEED7_Pos) |
-                          (3 << GPIO_OSPEEDR_OSPEED9_Pos);
-        GPIOF->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
-        GPIOF->AFR[1] |= (5 << GPIO_AFRH_AFSEL9_Pos);
+        Gpio::SetMode<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::Mode::OutputAF);
+        Gpio::SetSpeed<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::Speed::VeryHigh);
+        Gpio::SetAltFunction<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::AltFunction::AF5);
     }
 
     void App::InitializeSpi(SPI_TypeDef *spi)

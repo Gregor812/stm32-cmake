@@ -1,9 +1,11 @@
 #pragma once
 
-#include "stm32f4xx.h"
 #include <cstdint>
 #include <type_traits>
 #include <functional>
+
+#include "stm32f4xx.h"
+#include "Gpio.hpp"
 
 namespace Peripherals
 {
@@ -12,7 +14,6 @@ namespace Peripherals
         OneByte,
         TwoBytes
     };
-
 
     template <DataLength dataLength,
         typename TData,
@@ -23,43 +24,37 @@ namespace Peripherals
     {
     public:
 
-        Spi() = default;
-
         Spi(SPI_TypeDef *spi, const std::function<void (SPI_TypeDef *)>& initialize) : 
             _spi(spi), _initialize(initialize)
         {}
 
-        Spi& Initialize()
+        void Initialize(void)
         {
             _initialize(_spi);
-            return *this;
         }
 
-        Spi& ActivateChipSelect()
+        void ActivateChipSelect(void)
         {
-            GPIOC->BSRR = 1 << (2 + 16);
-            return *this;
+            Gpio::Reset<Gpio::Pin::Pin2>(GPIOC);
         }
 
-        Spi& ReleaseChipSelect()
+        void ReleaseChipSelect(void)
         {
-            GPIOC->BSRR = 1 << 2;
-            return *this;
+            Gpio::Set<Gpio::Pin::Pin2>(GPIOC);
         }
 
-        Spi& Write(TData data)
+        void Write(TData data)
         {
             while (!BufferIsEmpty());
             _spi->DR = data;
-            return *this;
         }
 
-        bool IsBusy() const
+        bool IsBusy(void) const
         {
             return _spi->SR & SPI_SR_BSY;
         }
 
-        bool BufferIsEmpty() const
+        bool BufferIsEmpty(void) const
         {
             return _spi->SR & SPI_SR_TXE;
         }

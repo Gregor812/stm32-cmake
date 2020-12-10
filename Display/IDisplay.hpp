@@ -8,8 +8,8 @@ namespace Display
     {
     public:
 
-        virtual IDisplay& InitializeHardware(void) = 0;
-        virtual IDisplay& InitializeSoftware(void) = 0;
+        virtual void InitializeHardware(void) = 0;
+        virtual void InitializeSoftware(void) = 0;
         virtual void RedrawFrame(void) = 0;
         virtual ~IDisplay()
         {}
