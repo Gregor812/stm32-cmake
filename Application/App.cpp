@@ -56,18 +56,17 @@ namespace Application
                         RCC_AHB1ENR_GPIOFEN;
 
         Gpio::SetMode<Gpio::Pin::Pin2, Gpio::Pin::Pin4,
-            Gpio::Pin::Pin5, Gpio::Pin::Pin7, Gpio::Pin::Pin13>
+            Gpio::Pin::Pin5, Gpio::Pin::Pin7>
             (GPIOD, Gpio::Mode::Output);
 
-        Gpio::SetSpeed<Gpio::Pin::Pin13>(GPIOD, Gpio::Speed::VeryHigh);
+        Gpio::Configure<Gpio::Pin::Pin13>(GPIOD, Gpio::Mode::Output, Gpio::Speed::VeryHigh);
 
         Gpio::Set<Gpio::Pin::Pin2>(GPIOC);
-        Gpio::SetMode<Gpio::Pin::Pin2>(GPIOC, Gpio::Mode::Output);
-        Gpio::SetSpeed<Gpio::Pin::Pin2>(GPIOC, Gpio::Speed::VeryHigh);
+        Gpio::Configure<Gpio::Pin::Pin2>(GPIOC, Gpio::Mode::Output, Gpio::Speed::VeryHigh);
 
-        Gpio::SetMode<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::Mode::OutputAF);
-        Gpio::SetSpeed<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::Speed::VeryHigh);
-        Gpio::SetAltFunction<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::AltFunction::AF5);
+        Gpio::Configure<Gpio::Pin::Pin7, Gpio::Pin::Pin9>(GPIOF, Gpio::Mode::OutputAF,
+            Gpio::Speed::VeryHigh, Gpio::AltFunction::AF5);
+
     }
 
     void App::InitializeSpi(SPI_TypeDef *spi)

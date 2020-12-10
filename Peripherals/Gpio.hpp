@@ -95,6 +95,21 @@ namespace Peripherals
         }
 
         template<Pin... pins>
+        static inline void Configure(GPIO_TypeDef *port, Mode mode, Speed speed)
+        {
+            SetMode<pins...>(port, mode);
+            SetSpeed<pins...>(port, speed);
+        }
+
+        template<Pin... pins>
+        static inline void Configure(GPIO_TypeDef *port, Mode mode, Speed speed, AltFunction altFunction)
+        {
+            SetMode<pins...>(port, mode);
+            SetSpeed<pins...>(port, speed);
+            SetAltFunction<pins...>(port, altFunction);
+        }
+
+        template<Pin... pins>
         static inline void Set(GPIO_TypeDef *port)
         {
             uint32_t temp = 0;
