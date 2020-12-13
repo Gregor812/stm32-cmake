@@ -93,7 +93,7 @@
             "problemMatcher": []
         },
         {
-            "type": "process",
+            "type": "shell",
             "label": "Load firmware",
             "linux": 
             {
