@@ -16,9 +16,8 @@ set(COMMON_C_CXX_FLAGS
 )
 set(CMAKE_C_FLAGS "${COMMON_C_CXX_FLAGS} -std=c11")
 set(CMAKE_CXX_FLAGS "${COMMON_C_CXX_FLAGS} -std=c++17")
-set(CMAKE_EXE_LINKER_FLAGS "-spec=nosys.specs -spec=nano.specs -u _printf_float -u _scanf_float -Wl,--gc-sections -Wl,-map=${PROJECT_NAME}.map,--cref")
 
 set(LINKER_SCRIPT ${PROJECT_SOURCE_DIR}/CMSIS/Device/STM32F429ZITx_FLASH.ld)
 set(CMAKE_CXX_FLAGS_INIT ${CMAKE_C_FLAGS})
 set(CMAKE_C_FLAGS_INIT ${CMAKE_CXX_FLAGS})
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,-gc-sections -specs=nosys.specs -specs=nano.specs -T ${LINKER_SCRIPT}")
+set(CMAKE_EXE_LINKER_FLAGS "-Wl,-gc-sections -specs=nosys.specs -specs=nano.specs -T${LINKER_SCRIPT}")

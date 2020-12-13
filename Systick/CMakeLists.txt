@@ -15,3 +15,7 @@ target_include_directories(Systick PUBLIC
     "${PROJECT_SOURCE_DIR}/../CMSIS/Include"
     "${PROJECT_SOURCE_DIR}/../CMSIS/Device/Include"
 )
+
+target_link_libraries(Systick PUBLIC
+   F4-CMSIS
+)

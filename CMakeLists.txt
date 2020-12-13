@@ -29,16 +29,16 @@ target_sources(
     ${PROJECT_SOURCE_DIR}/main.cpp
 )
 
-configure_file(config.h.in config.h)
+configure_file(config.h.in ${PROJECT_SOURCE_DIR}/config.h)
 
 target_link_libraries(${EXE_NAME} PUBLIC
    Application
 )
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.map")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${PROJECT_BUILD_DIR}/${PROJECT_NAME}.map")
 
-set(HEX_FILE ${PROJECT_SOURCE_DIR}/build/${TARGET_NAME}.hex)
-set(BIN_FILE ${PROJECT_SOURCE_DIR}/build/${TARGET_NAME}.bin)
+set(HEX_FILE ${PROJECT_BUILD_DIR}/${TARGET_NAME}.hex)
+set(BIN_FILE ${PROJECT_BUILD_DIR}/${TARGET_NAME}.bin)
 
 add_custom_command(TARGET ${EXE_NAME} POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${EXE_NAME}> ${HEX_FILE}

@@ -15,3 +15,7 @@ target_include_directories(Random PUBLIC
     "${PROJECT_SOURCE_DIR}/../CMSIS/Include"
     "${PROJECT_SOURCE_DIR}/../CMSIS/Device/Include"
 )
+
+target_link_libraries(Random PUBLIC
+   F4-CMSIS
+)
