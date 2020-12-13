@@ -91,6 +91,27 @@
                 ]
             },
             "problemMatcher": []
+        },
+        {
+            "type": "process",
+            "label": "Load firmware",
+            "linux": 
+            {
+                "command": "openocd",
+                "args": [
+                    "-f",
+                    "board/stm32f429discovery.cfg",
+                    "-c",
+                    "\"program firmware.elf verify reset exit\""
+                ],
+            },
+            "windows": {
+                "command": "${workspaceFolder}/loadFirmware.bat"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/build/"
+            },
+            "problemMatcher": []
         }
     ]
 }
