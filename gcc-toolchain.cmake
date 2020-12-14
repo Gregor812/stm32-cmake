@@ -7,8 +7,8 @@ set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 set(arch cortex-m4)
 
-set(CMAKE_C_COMPILER ${triplet}gcc.exe)
-set(CMAKE_CXX_COMPILER ${triplet}g++.exe)
+set(CMAKE_C_COMPILER ${triplet}gcc)
+set(CMAKE_CXX_COMPILER ${triplet}g++)
 
 set(CMAKE_ASM_FLAGS "-mcpu=${arch} -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16")
 set(COMMON_C_CXX_FLAGS
