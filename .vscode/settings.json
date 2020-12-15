@@ -1,8 +1,0 @@
-{
-    "cmake.buildDirectory": "${workspaceFolder}/build",
-    "cmake.sourceDirectory": "${workspaceFolder}",
-    "cmake.generator": "MinGW Makefiles",
-    "cmake.configureArgs": [
-        "-DCMAKE_TOOLCHAIN_FILE=gcc-toolchain.cmake"
-    ]
-}
