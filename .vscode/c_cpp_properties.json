@@ -19,8 +19,7 @@
             ],
             "defines": [
                 "STM32F429xx"
-            ],
-            "configurationProvider": "vector-of-bool.cmake-tools"
+            ]
         }
     ],
     "version": 4
