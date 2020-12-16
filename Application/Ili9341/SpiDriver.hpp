@@ -4,9 +4,10 @@
 
 #include "stm32f4xx.h"
 #include "IDisplay.hpp"
-#include "Systick.hpp"
+#include "Core.hpp"
 #include "Spi.hpp"
 
+using namespace Core;
 using namespace Peripherals;
 
 namespace Ili9341

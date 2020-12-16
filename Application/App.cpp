@@ -1,5 +1,4 @@
 #include "App.hpp"
-#include "Systick.hpp"
 #include "Random.hpp"
 #include "SpiDriver.hpp"
 
@@ -37,7 +36,6 @@ namespace Application
         while ((RCC->CFGR & RCC_CFGR_SWS_PLL) == 0);
 
         RCC->CR &= ~(RCC_CR_HSION);
-        Systick::Initialize();
     }
 
     void App::InitializeDevice(void)

@@ -15,7 +15,7 @@ message(STATUS "Using toolchain file\n\t${CMAKE_TOOLCHAIN_FILE}")
 add_definitions(-DSTM32F429xx)
 
 add_subdirectory(CMSIS)
-add_subdirectory(Systick)
+add_subdirectory(Core)
 add_subdirectory(Random)
 add_subdirectory(Application)
 
