@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include "stm32f4xx.h"
-#include "Spi.hpp"
 
 namespace Application
 {

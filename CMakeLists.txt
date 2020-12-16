@@ -16,7 +16,7 @@ add_definitions(-DSTM32F429xx)
 
 add_subdirectory(CMSIS)
 add_subdirectory(Core)
-add_subdirectory(Random)
+add_subdirectory(Peripherals)
 add_subdirectory(Application)
 
 set(TARGET_NAME firmware)

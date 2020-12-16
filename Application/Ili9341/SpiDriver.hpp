@@ -5,7 +5,7 @@
 #include "stm32f4xx.h"
 #include "IDisplay.hpp"
 #include "Core.hpp"
-#include "Spi.hpp"
+#include "Peripherals.hpp"
 
 using namespace Core;
 using namespace Peripherals;

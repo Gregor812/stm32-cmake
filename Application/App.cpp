@@ -1,5 +1,5 @@
 #include "App.hpp"
-#include "Random.hpp"
+#include "Peripherals.hpp"
 #include "SpiDriver.hpp"
 
 using namespace Peripherals;
@@ -40,7 +40,6 @@ namespace Application
 
     void App::InitializeDevice(void)
     {
-        Random::Initialize();
         InitializePins();
         auto ili9341 = Ili9341::SpiDriver(SPI5, [this](SPI_TypeDef *spi) { this->InitializeSpi(spi); });
         ili9341.InitializeHardware();

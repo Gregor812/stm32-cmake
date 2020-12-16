@@ -16,7 +16,6 @@ target_include_directories(Application PUBLIC
     "${PROJECT_SOURCE_DIR}/../CMSIS/Include"
     "${PROJECT_SOURCE_DIR}/../CMSIS/Device/Include"
     "${PROJECT_SOURCE_DIR}/../Core"
-    "${PROJECT_SOURCE_DIR}/../Random"
     "${PROJECT_SOURCE_DIR}/../Display"
     "${PROJECT_SOURCE_DIR}/../Peripherals"
 )
@@ -24,5 +23,5 @@ target_include_directories(Application PUBLIC
 target_link_libraries(Application PUBLIC
    F4-CMSIS
    Core
-   Random
+   Peripherals
 )

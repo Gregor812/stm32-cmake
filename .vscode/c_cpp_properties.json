@@ -9,14 +9,15 @@
             "includePath": [
                 "${workspaceRoot}/CMSIS/Include",
                 "${workspaceRoot}/CMSIS/Device/Include",
-                "${workspaceRoot}/build",
                 "${workspaceRoot}/Core",
                 "${workspaceRoot}/Core/Systick",
-                "${workspaceRoot}/Random",
                 "${workspaceRoot}/Application",
                 "${workspaceRoot}/Application/Ili9341",
                 "${workspaceRoot}/Display",
-                "${workspaceRoot}/Peripherals"
+                "${workspaceRoot}/Peripherals",
+                "${workspaceRoot}/Peripherals/Gpio",
+                "${workspaceRoot}/Peripherals/Random",
+                "${workspaceRoot}/Peripherals/Spi"
             ],
             "defines": [
                 "STM32F429xx"
