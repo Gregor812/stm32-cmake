@@ -2,6 +2,8 @@
 
 #ifdef STM32F429xx
     #include "Impl/RandomImplStF429.hpp"
+#else
+    #error "There is no implementation for Random"
 #endif
 
 namespace Peripherals

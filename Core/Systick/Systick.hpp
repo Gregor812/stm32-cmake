@@ -4,23 +4,16 @@
 
 namespace Core
 {
-    class Systick
+    class Systick final
     {
     public:
-        static void DelayMilliseconds(uint32_t milliseconds);
 
+        static void DelayMilliseconds(uint32_t milliseconds) noexcept;
+
+        Systick() = delete;
         Systick(const Systick&) = delete;
         Systick& operator=(const Systick&) = delete;
         Systick(const Systick&&) = delete;
         Systick& operator=(const Systick&&) = delete;
-
-    private:
-        friend void SysTickHandler();
-        Systick();
-
-        void DelayMillisecondsInst(uint32_t milliseconds);
-
-        static Systick& Instance(void);
-        volatile uint32_t sysTickCounter;
     };
 }
